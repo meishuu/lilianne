@@ -1,9 +1,10 @@
-const child_process = require('child_process');
+import { spawn } from 'child_process';
+
 const regex = /track_gain = (.+?) dB/;
 const nul = (process.platform === 'win32') ? 'nul' : '/dev/null';
 
-module.exports = function replaygain(fp, cb) {
-  const enc = child_process.spawn('ffmpeg', [
+export default function replaygain(fp: string, cb: (error: Error, gain?: number) => void) {
+  const enc = spawn('ffmpeg', [
     '-i', fp,
     '-af', 'replaygain',
     '-f', 'null',
@@ -13,7 +14,7 @@ module.exports = function replaygain(fp, cb) {
   let found = false;
 
   enc.stderr.setEncoding('utf8');
-  enc.stderr.on('data', (data) => {
+  enc.stderr.on('data', (data: string) => {
     if (data.indexOf('replaygain') === -1) return;
 
     const match = data.match(regex);

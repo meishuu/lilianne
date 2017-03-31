@@ -224,8 +224,8 @@ function showQueue(queue) {
   var $inactive = $queue.find('.inactive');
 
   var $songs = $(queue.map(function(data, index) {
-    var song = data[0];
-    var qid = data[1];
+    var song = data.song;
+    var qid = data.id;
     return (
       $div('song').append(
         $div('index').text(index + 1),

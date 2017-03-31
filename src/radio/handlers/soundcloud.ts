@@ -1,24 +1,26 @@
-const url = require('url');
-const request = require('request');
+import { parse as parseUrl } from 'url';
+import * as request from 'request';
 
 const SOUNDCLOUD_KEY = '02gUJC0hH2ct1EGOcYXQIzRFU91c72Ea';
 
-module.exports = class SoundCloud {
-  static match(link) {
-    const parse = url.parse(link);
+import { Writable } from 'stream';
+import { HandlerImpl, SongInfo } from '../handlers';
+
+export default class SoundCloud implements HandlerImpl {
+  static match(link: string) {
+    const parse = parseUrl(link);
     return (parse.hostname === 'snd.sc' || /(www\.)?soundcloud\.com/.test(parse.hostname));
   }
 
-  constructor(link) {
-    this.link = link;
+  stream_url: string;
+
+  constructor(public link: string) {
   }
 
-  getMeta(cb) {
-    const self = this;
-
+  getMeta(cb: (error: Error, song?: SongInfo) => void) {
     request({
       url: 'https://api.soundcloud.com/resolve',
-      qs: { url: self.link, client_id: SOUNDCLOUD_KEY },
+      qs: { url: this.link, client_id: SOUNDCLOUD_KEY },
     }, (err, res, data) => {
       // check request() error
       if (err) return cb(err);
@@ -46,7 +48,7 @@ module.exports = class SoundCloud {
       if (!data.streamable) return cb(new Error('Track is not streamable'));
       if (!data.stream_url) return cb(new Error('No stream URL found'));
 
-      self.stream_url = data.stream_url;
+      this.stream_url = data.stream_url;
 
       cb(null, {
         id: data.id,
@@ -63,7 +65,7 @@ module.exports = class SoundCloud {
     });
   }
 
-  download(stream) {
+  download(stream: Writable) {
     return (
       request({ url: this.stream_url, qs: { client_id: SOUNDCLOUD_KEY } })
         .pipe(stream)

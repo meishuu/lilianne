@@ -1,35 +1,23 @@
-function trimUser(user) {
-  const props = [
-    'username',
-    'discriminator',
-    'id',
-    'avatar',
-  ];
+import * as Discord from 'discord.js';
 
-  const res = {};
-  for (const prop of props) res[prop] = user[prop];
-  return res;
-}
+import Web from '.';
+import Radio, { SongInfoExtended, QueueItem, UserInfo, trimUser } from '../radio';
 
-module.exports = function webapp(web) {
-  const base = web.base;
-  const io = web.io;
+export default function webapp(web: Web) {
+  const { base, io } = web;
+  const { radio } = base;
 
-  const radio = base.radio;
-
-  let current = null;
-  let order = [];
+  let current: SongInfoExtended = null;
+  let order: UserInfo[] = [];
 
   radio.on('history', (history) => {
     io.emit('history', history);
   });
 
   radio.on('song', (fp, song) => {
-    console.log(song);
     if (song) {
       current = Object.assign({}, song);
       current.player = Object.assign({}, song.player);
-      current.player.dj = trimUser(current.player.dj);
       current.player.currentTime = Date.now();
     } else {
       current = null;
@@ -60,9 +48,8 @@ module.exports = function webapp(web) {
       return;
     }
 
-    const id = socket.request.session.passport.user.id;
-    const user = base.bot.server.members.get(id);
-    if (!user) {
+    const { id } = socket.request.session.passport.user;
+    if (!base.bot.server.members.has(id)) {
       socket.emit('app error', {
         type: 'not in server',
         user: socket.request.session.passport.user,
@@ -76,10 +63,12 @@ module.exports = function webapp(web) {
       return;
     }
 
+    const { user } = base.bot.server.members.get(id);
+
     // RADIO HOOKS
-    function onQueue(u, queue) {
+    function onQueue(u: Discord.User, queue: QueueItem[]) {
       if (u.id !== user.id) return;
-      socket.emit('queue', queue.map(q => q.slice(1)));
+      socket.emit('queue', queue.map(({ fp, ...item }) => item));
     }
 
     radio.on('queue', onQueue);
@@ -88,7 +77,7 @@ module.exports = function webapp(web) {
     });
 
     // ADD HOOKS
-    socket.on('add', (url) => {
+    socket.on('add', (url: string) => {
       if (adding) {
         socket.emit('add status', 'error', new Error('Already adding'));
         return;
@@ -125,13 +114,13 @@ module.exports = function webapp(web) {
       });
     });
 
-    socket.on('delete', (qid) => {
+    socket.on('delete', (qid: string) => {
       radio.removeSong(user, qid);
     });
 
     // SEND INIT
     if (current) current.player.currentTime = Date.now();
-    const queue = radio.queues[id] || [];
+    const queue = radio.queues.get(id) || [];
     socket.emit('load', {
       id,
       server: {
@@ -141,7 +130,7 @@ module.exports = function webapp(web) {
         channel: base.bot.voiceChannel.name,
       },
       order,
-      queue: queue.map(q => q.slice(1)),
+      queue: queue.map(({ fp, ...item }) => item),
       current,
       history: radio.history,
     });

@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "outDir": "./lib",
+    "target": "es5",
+    "lib": ["es6"],
+    "moduleResolution": "node",
+    "noImplicitAny": true
+  },
+  "include": [
+    "src/**/*"
+  ]
+}

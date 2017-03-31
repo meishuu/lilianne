@@ -1,10 +1,12 @@
-const events = require('events');
-const Discord = require('discord.js');
+import { EventEmitter } from 'events';
+import * as Discord from 'discord.js';
+
+import Application from '..';
 
 const BASELINE_DB = -16;
 
-function timeStr(s) {
-  const pad = n => `0${n}`.slice(-2);
+function timeStr(s: number) {
+  const pad = (n: number) => `0${n}`.slice(-2);
 
   let m = Math.floor(s / 60);
   s %= 60;
@@ -18,8 +20,8 @@ function timeStr(s) {
   }
 }
 
-function humanize(n) {
-  const trunc = n => Number(Number(n).toPrecision(3));
+function humanize(n: number) {
+  const trunc = (n: number) => Number(Number(n).toPrecision(3));
 
   const prefixes = ['', 'k', 'm', 'b', 't', 'q'];
   n = trunc(n);
@@ -30,8 +32,14 @@ function humanize(n) {
   return n + prefixes.shift();
 }
 
-module.exports = class Bot extends events.EventEmitter {
-  constructor(app) {
+export default class Bot extends EventEmitter {
+  client: Discord.Client;
+  server: Discord.Guild | null;
+  chatChannel: Discord.TextChannel | null;
+  voiceChannel: Discord.VoiceChannel | null;
+  voiceConnection: Discord.VoiceConnection | null;
+
+  constructor(app: Application) {
     super();
 
     const radio = app.radio;
@@ -45,9 +53,8 @@ module.exports = class Bot extends events.EventEmitter {
     this.voiceConnection = null;
 
     const setTopic = () => {
-      // TODO
-      /*
       if (!this.chatChannel) return;
+      if (!this.chatChannel.permissionsFor(bot.user).hasPermission('MANAGE_CHANNELS')) return;
 
       const $current = radio.current;
       const $order = radio.order;
@@ -64,21 +71,20 @@ module.exports = class Bot extends events.EventEmitter {
         dj += 'Nobody';
       } else {
         dj += $order.map(u => {
-          const q = $queues[u.id];
+          const q = $queues.get(u.id);
           return (q && q.length > 0) ? `__${u.username}__` : u.username;
         }).join(', ');
       }
 
-      bot.setChannelTopic(this.chatChannel, [np, dj].join(' // '));
-      */
+      this.chatChannel.setTopic([np, dj].join(' // '));
     };
 
     bot.on('ready', () => {
       this.server = bot.guilds.get(app.config.discord.bot.server_id);
-      this.chatChannel = this.server.channels.get(app.config.discord.bot.text_channel);
-      this.voiceChannel = this.server.channels.get(app.config.discord.bot.voice_channel);
+      this.chatChannel = <Discord.TextChannel>this.server.channels.get(app.config.discord.bot.text_channel);
+      this.voiceChannel = <Discord.VoiceChannel>this.server.channels.get(app.config.discord.bot.voice_channel);
 
-      for (const [id, member] of this.voiceChannel.members) {
+      for (const [id, member] of Array.from(this.voiceChannel.members)) {
         if (id !== bot.user.id && !member.user.bot) {
           radio.addDj(member.user);
         }
@@ -105,13 +111,13 @@ module.exports = class Bot extends events.EventEmitter {
         case '!queue': {
           const res = radio.addSong(args[1], message.author);
           res.on('error', (err) => {
-            bot.reply(message, `I couldn't add that! The error was: \`${err.message}\``);
+            message.reply(`I couldn't add that! The error was: \`${err.message}\``);
             console.error(err.stack);
           });
           res.on('done', (song) => {
             const duration = timeStr(song.duration);
 
-            bot.reply(message,
+            message.reply(
               `queueing ${song.title} [${duration}] uploaded by ${song.uploader.name}` +
               '' // ` (${rating_str}★ / ${views_str} views)`
             );
@@ -155,8 +161,4 @@ module.exports = class Bot extends events.EventEmitter {
 
     this.client = bot;
   }
-
-  get users() {
-    return (this.voiceChannel && this.voiceChannel.members) || [];
-  }
-};
+}
