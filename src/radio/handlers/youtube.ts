@@ -1,23 +1,23 @@
-const url = require('url');
-const ytdl = require('ytdl-core');
+import { parse as parseUrl } from 'url';
+import * as ytdl from 'ytdl-core';
 
-import { Readable, Writable } from 'stream';
+import { Writable } from 'stream';
 import { HandlerImpl, SongInfo } from '../handlers';
 
 export default class YouTube implements HandlerImpl {
   static match(link: string) {
-    const parse = url.parse(link);
+    const parse = parseUrl(link);
     return (parse.hostname === 'youtu.be' || /\byoutube\b/.test(parse.hostname));
   }
 
-  info: any;
+  info: ytdl.videoInfo;
 
   constructor(public link: string) {
   }
 
   getMeta(cb: (error: Error, song?: SongInfo) => void) {
     try {
-      ytdl.getInfo(this.link, (err: Error, info?: any) => {
+      ytdl.getInfo(this.link, (err, info) => {
         // check ytdl error
         if (err) return cb(err);
 
@@ -27,7 +27,7 @@ export default class YouTube implements HandlerImpl {
         cb(null, {
           id: info.video_id,
           title: info.title,
-          url: info.loaderUrl,
+          url: info.video_url,
           image: info.thumbnail_url,
           duration: +info.length_seconds,
           plays: info.view_count,
@@ -43,6 +43,6 @@ export default class YouTube implements HandlerImpl {
   }
 
   download(stream: Writable) {
-    return (<Readable>ytdl.downloadFromInfo(this.info, { filter: 'audioonly' })).pipe(stream);
+    return ytdl.downloadFromInfo(this.info, { filter: 'audioonly' }).pipe(stream);
   }
 };

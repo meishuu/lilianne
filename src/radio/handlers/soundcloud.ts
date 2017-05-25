@@ -1,13 +1,12 @@
 import { parse as parseUrl } from 'url';
-import * as request from 'request';
-
-const SOUNDCLOUD_KEY = '02gUJC0hH2ct1EGOcYXQIzRFU91c72Ea';
+import * as fetch from 'node-fetch';
 
 import { Writable } from 'stream';
 import { HandlerImpl, SongInfo } from '../handlers';
 
 export default class SoundCloud implements HandlerImpl {
   static match(link: string) {
+    return false; // TODO
     const parse = parseUrl(link);
     return (parse.hostname === 'snd.sc' || /(www\.)?soundcloud\.com/.test(parse.hostname));
   }

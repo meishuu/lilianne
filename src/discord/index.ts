@@ -29,7 +29,7 @@ function humanize(n: number) {
     n = trunc(n / 1000);
     prefixes.shift();
   }
-  return n + prefixes.shift();
+  return n + prefixes.shift()!;
 }
 
 export default class Bot extends EventEmitter {
@@ -54,7 +54,7 @@ export default class Bot extends EventEmitter {
 
     const setTopic = () => {
       if (!this.chatChannel) return;
-      if (!this.chatChannel.permissionsFor(bot.user).hasPermission('MANAGE_CHANNELS')) return;
+      if (!this.chatChannel.permissionsFor(bot.user).has('MANAGE_CHANNELS')) return;
 
       const $current = radio.current;
       const $order = radio.order;

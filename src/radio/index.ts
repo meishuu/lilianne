@@ -23,6 +23,7 @@ export interface SongInfoExtended extends SongInfo {
 }
 
 export interface UserInfo {
+  name: Discord.GuildMember['nickname'] | Discord.User['username'];
   username: Discord.User['username'];
   discriminator: Discord.User['discriminator'];
   id: Discord.User['id'];
@@ -41,7 +42,8 @@ function skipRatio(length: number) {
 
 export function trimUser(user: Discord.User) {
   const { username, discriminator, id, avatar } = user;
-  return <UserInfo>{ username, discriminator, id, avatar };
+  const name = username; // TODO
+  return <UserInfo>{ name, username, discriminator, id, avatar };
 }
 
 //type QueueItem = [string, SongInfoExtended, number];
@@ -141,7 +143,7 @@ class Radio extends EventEmitter {
   }
 
   addSong(link: string, user: Discord.User) {
-    const handler = handlers(link);
+    const handler = handlers(link, this.app.config);
     if (!handler) return null;
 
     const emitter: AddSongEmitter = new EventEmitter();

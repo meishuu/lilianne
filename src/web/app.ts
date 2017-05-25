@@ -7,7 +7,7 @@ export default function webapp(web: Web) {
   const { base, io } = web;
   const { radio } = base;
 
-  let current: SongInfoExtended = null;
+  let current: SongInfoExtended | null = null;
   let order: UserInfo[] = [];
 
   radio.on('history', (history) => {
@@ -38,7 +38,7 @@ export default function webapp(web: Web) {
     let adding = false;
 
     // CHECK ERRORS
-    if (!socket.request.session.passport) {
+    if (!socket.request.session || !socket.request.session.passport) {
       socket.emit('app error', { type: 'not authenticated' });
       return;
     }
@@ -57,13 +57,15 @@ export default function webapp(web: Web) {
           id: base.bot.server.id,
           name: base.bot.server.name,
           icon: base.bot.server.icon,
-          channel: base.bot.voiceChannel.name,
+          channel: base.bot.voiceChannel!.name, // TODO
         },
       });
       return;
     }
 
-    const { user } = base.bot.server.members.get(id);
+    const member = base.bot.server.members.get(id);
+    if (!member) return; // TODO
+    const { user } = member;
 
     // RADIO HOOKS
     function onQueue(u: Discord.User, queue: QueueItem[]) {
@@ -127,7 +129,7 @@ export default function webapp(web: Web) {
         id: base.bot.server.id,
         name: base.bot.server.name,
         icon: base.bot.server.icon,
-        channel: base.bot.voiceChannel.name,
+        channel: base.bot.voiceChannel!.name, // TODO
       },
       order,
       queue: queue.map(({ fp, ...item }) => item),

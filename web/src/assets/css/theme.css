@@ -1,0 +1,207 @@
+body {
+  background-color: #36393e;
+  color: hsla(0, 0%, 100%, 0.7);
+}
+
+a {
+  color: #00b0f4;
+}
+
+.scroller-wrap .scroller::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.scroller-wrap .scroller::-webkit-scrollbar-track-piece {
+  background-color: transparent;
+}
+
+.front {
+  background: #282b30;
+}
+
+.application-icon {
+  background: hsla(0, 0%, 100%, 0.2);
+}
+
+.front-inner {
+  background: #35383c;
+  box-shadow: 0 1px 10px 0 rgba(0, 0, 0, 0.1);
+}
+
+.front-inner header {
+  background-color: #f04747;
+}
+
+.front-inner header h1 {
+  color: #fff;
+}
+
+.front-inner section {
+  border-color: hsla(0, 0%, 100%, 0.1);
+}
+
+.front-inner section:last-of-type {
+  border-color: transparent;
+}
+
+.front-inner footer button.primary {
+  color: #fff;
+  background: #738bd7;
+}
+
+.channel-members-wrap {
+  background-color: #2e3136;
+}
+
+.channel-members-wrap .guild {
+  box-shadow: 0 1px 0 #24272b, inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+}
+
+.guild-inner {
+  color: #fff;
+}
+
+/*
+.channel-members-wrap .scroller-wrap ::-webkit-scrollbar-thumb {
+  background-color: #1e2124;
+  border-color: #36393e;
+}
+
+.channel-members-wrap .scroller-wrap ::-webkit-scrollbar-track-piece {
+  background-color: #2e3136;
+  border-color: #36393e;
+}
+*/
+
+.channel-members h2 {
+  color: hsla(0, 0%, 100%, 0.4)
+}
+
+.channel-members .member {
+  color: hsla(0, 0%, 100%, 0.6);
+}
+
+.channel-members .member.me {
+  background: linear-gradient(90deg, #282b30 85%, #2e3136);
+  color: #fff;
+}
+
+.channel-members .member.me:before {
+  border-color: #738bd7;
+}
+
+.current-song-wrap {
+  background-color: #36393e;
+  border-bottom-color: #282b30;
+}
+
+.no-song {
+  margin: auto;
+}
+
+.no-song h1 {
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.dj .dj-name {
+  color: hsla(0, 0%, 100%, 0.7);
+}
+
+.skip .btn {
+  background-color: #738bd7;
+  color: #fff;
+}
+
+.skip .btn:hover {
+  background-color: #697ec4;
+}
+
+.skip .btn:disabled {
+  color: #ddd;
+  background-color: #949494;
+}
+
+.progress .current-time {
+  position: relative;
+}
+
+.progress .current-time .display-time {
+  position: absolute;
+  text-align: right;
+  right: 0;
+}
+
+.progress .hidden-time {
+  visibility: hidden;
+}
+
+.progress>span {
+  color: hsla(0, 0%, 100%, 0.2);
+}
+
+.progress .progress-bar {
+  background-color: #e9e7e7;
+}
+
+.progress .progress-value {
+  background-color: #738bd7;
+}
+
+.song-info h1 a {
+  color: #fff;
+}
+
+.song-info .uploader {
+  color: hsla(0, 0%, 100%, 0.7);
+}
+
+.song-info .extra {
+  color: #707578;
+}
+
+.song-queue .song {
+  border-top-color: hsla(0, 0%, 100%, 0.1);
+  color: hsla(0, 0%, 100%, 0.4);
+}
+
+.song-queue .song:hover {
+  background: #414449;
+  color: hsla(0, 0%, 100%, 0.8);
+  box-shadow: 0 2px 1px 0 rgba(0, 0, 0, 0.1);
+}
+
+.song-queue .song .handle {
+  background-color: #2e3136;
+}
+
+.song-queue .song .handle>span {
+  border-color: hsla(0, 0%, 100%, 0.8);
+}
+
+.song-queue-wrap form {
+  border-top: 1px solid hsla(0, 0%, 100%, 0.06);
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);
+}
+
+.url-textarea-inner {
+  border-color: hsla(0, 0%, 100%, 0.2);
+  background-color: hsla(0, 0%, 100%, 0.06);
+}
+
+.url-textarea-inner input {
+  color: hsla(0, 0%, 100%, 0.7);
+  background-color: transparent;
+}
+
+.url-textarea-inner ::-webkit-input-placeholder {
+  color: hsla(0, 0%, 100%, 0.2);
+}
+
+.song-history-wrap {
+  background-color: #2e3136;
+}
+
+.song-history .item {
+  border-top-color: hsla(0, 0%, 100%, 0.1);
+}

@@ -38,7 +38,7 @@ for (const file of fs.readdirSync(base)) {
   }
 }
 
-export default function getHandler(link: string) {
+export default function getHandler(link: string, config: object) { // TODO
   for (const handler of handlers) {
     if (handler.match(link)) {
       return new handler(link);

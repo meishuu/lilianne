@@ -1,0 +1,124 @@
+@font-face {
+  font-family: Whitney;
+  font-style: light;
+  font-weight: 300;
+  src: url("../fonts/Whitney-Light.woff") format("woff");
+}
+
+@font-face {
+  font-family: Whitney;
+  font-style: normal;
+  font-weight: 500;
+  src: url("../fonts/Whitney-Regular.woff") format("woff");
+}
+
+@font-face {
+  font-family: Whitney;
+  font-style: medium;
+  font-weight: 600;
+  src: url("../fonts/Whitney-Medium.woff") format("woff");
+}
+
+@font-face {
+  font-family: Whitney;
+  font-style: bold;
+  font-weight: 700;
+  src: url("../fonts/Whitney-Bold.woff") format("woff");
+}
+
+/************
+ * ELEMENTS *
+ ************/
+body {
+  font-family: Whitney, "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+  line-height: 1;
+  overflow: hidden;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 400;
+}
+
+h2 {
+  margin: 9px 0;
+}
+
+a {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled,
+input:disabled {
+  cursor: not-allowed;
+}
+
+/**************
+ * COMPONENTS *
+ **************/
+.flex-vertical {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-vertical>.flex-spacer {
+  min-height: 1px;
+}
+
+.flex-horizontal {
+  display: flex;
+  flex-direction: row;
+}
+
+.flex-horizontal>.flex-spacer {
+  min-width: 1px;
+}
+
+.flex-spacer {
+  flex: 1;
+}
+
+.scroller-wrap {
+  display: flex;
+}
+
+.scroller-wrap,
+.scroller-wrap .scroller {
+  min-height: 1px;
+  flex: 1;
+}
+
+.scroller-wrap .scroller {
+  overflow-y: scroll;
+}
+
+.scroller-wrap .scroller::-webkit-scrollbar {
+  width: 14px;
+}
+
+.scroller-wrap .scroller::-webkit-scrollbar-thumb {
+  background-clip: padding-box;
+  border: 3px solid transparent;
+  border-radius: 7px;
+}
+
+.scroller-wrap .scroller::-webkit-scrollbar-track-piece {
+  background-clip: padding-box;
+  border: 3px solid transparent;
+  border-radius: 7px;
+}
+
+.avatar {
+  overflow: hidden;
+  border-radius: 50%;
+  flex-shrink: 0;
+  vertical-align: top;
+}

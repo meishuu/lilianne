@@ -1,3 +1,5 @@
+if (process.env.NODE_ENV !== 'production') process.env.NODE_ENV = 'development';
+
 import * as path from 'path';
 import * as redis from 'redis';
 
@@ -22,12 +24,23 @@ interface ConfigOptions {
     cache: string,
   },
   redis?: redis.ClientOpts,
+  services?: {
+    soundcloud?: {
+      client_id?: string,
+    },
+  },
   web: {
     url: string,
     port?: number,
     tls?: {
       key: string,
       cert: string,
+      hsts?: boolean | {
+        force?: boolean,
+        maxAge?: number,
+        includeSubDomains?: boolean,
+        preload?: boolean,
+      },
     },
   },
 }
@@ -54,7 +67,7 @@ export default class Application {
         return;
       }
 
-      console.log(`Listening at on port ${port}`);
+      console.log(`Listening on port ${port}`);
     });
   }
 }
