@@ -138,7 +138,6 @@ class Radio extends EventEmitter {
     const skipped = this.skips.size;
     const total = this.order.length;
     const needed = Math.ceil(ratio * total);
-    console.log(skipped, needed, total, skipped / total, ratio);
     this.emit('skips', this.skips, needed);
   }
 

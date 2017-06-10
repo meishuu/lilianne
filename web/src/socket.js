@@ -44,7 +44,6 @@ export default store => {
   });
 
   socket.on('song', (song) => {
-    console.log(song);
     store.dispatch(actions.setCurrentSong(song));
   });
 
