@@ -1,11 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Writable } from 'stream';
+import { ConfigOptions } from '..';
 
 const handlers: AbstractHandler[] = [];
 
 interface AbstractHandler {
-  new (link: string): HandlerImpl;
+  new (link: string, config: ConfigOptions['services']): HandlerImpl;
   match(link: string): boolean;
 }
 
@@ -38,10 +39,10 @@ for (const file of fs.readdirSync(base)) {
   }
 }
 
-export default function getHandler(link: string, config: object) { // TODO
+export default function getHandler(link: string, config: ConfigOptions) {
   for (const handler of handlers) {
     if (handler.match(link)) {
-      return new handler(link);
+      return new handler(link, config.services);
     }
   }
   return null;
