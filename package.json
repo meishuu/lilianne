@@ -1,12 +1,20 @@
 {
-  "name": "discord-dj",
+  "name": "lilianne",
   "version": "0.1.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Discord bot that plays music over voice chat.",
+  "license": "ISC",
+  "author": "meishu",
+  "files": [
+    "lib/",
+    "web/build/",
+    "web/public/"
+  ],
+  "main": "lib/index.js",
   "scripts": {
+    "build": "npm run tsc && npm run webpack",
+    "prepublish": "npm run build",
     "tsc": "tsc -p .",
-    "webpack": "webpack --config web/config/webpack.config.prod.js",
-    "build": "npm run tsc && npm run webpack"
+    "webpack": "webpack --config web/config/webpack.config.prod.js"
   },
   "dependencies": {
     "compression": "^1.6.2",
@@ -72,7 +80,5 @@
     "webpack-dev-middleware": "^1.10.2",
     "webpack-hot-middleware": "^2.18.0",
     "webpack-manifest-plugin": "^1.1.0"
-  },
-  "author": "meishu",
-  "license": "ISC"
+  }
 }
