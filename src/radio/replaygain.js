@@ -1,3 +1,5 @@
+/* @flow */
+
 import { spawn } from 'child_process';
 
 const regex = /track_gain = (.+?) dB/;

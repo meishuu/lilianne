@@ -1,15 +1,18 @@
 /* eslint-disable no-param-reassign, no-shadow */
+/* @flow */
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { EventEmitter } from 'events';
+import events from 'events';
+
+const { EventEmitter } = events; 
 
 import * as uuid from 'uuid';
 import * as mkdirp from 'mkdirp';
 import * as Discord from 'discord.js';
 
 import Application from '..';
-import handlers, { SongInfo } from './handlers';
+import handlers, { SongInfo } from 'src/radio/handlers';
 import replaygain from './replaygain';
 
 export interface SongInfoExtended extends SongInfo {
@@ -23,11 +26,11 @@ export interface SongInfoExtended extends SongInfo {
 }
 
 export interface UserInfo {
-  name: Discord.GuildMember['nickname'] | Discord.User['username'];
-  username: Discord.User['username'];
-  discriminator: Discord.User['discriminator'];
-  id: Discord.User['id'];
-  avatar: Discord.User['avatar'];
+  name: string;
+  username: string;
+  discriminator: string;
+  id: string;
+  avatar: string;
 }
 
 const getUid = (() => {
@@ -40,10 +43,10 @@ function skipRatio(length: number) {
   return 0.6 - 0.3 / (1 + Math.exp(3 - minutes / 3)); // eslint-disable-line no-mixed-operators
 }
 
-export function trimUser(user: Discord.User) {
+export function trimUser(user: Discord.User): UserInfo {
   const { username, discriminator, id, avatar } = user;
   const name = username; // TODO
-  return <UserInfo>{ name, username, discriminator, id, avatar };
+  return { name, username, discriminator, id, avatar };
 }
 
 //type QueueItem = [string, SongInfoExtended, number];
@@ -68,9 +71,10 @@ class Radio extends EventEmitter {
   history: SongInfoExtended[];
   skips: Set<string>;
 
-  constructor(public app: Application) {
+  constructor(app: Application) {
     super();
 
+    this.app = app;
     this.queues = new Map();
     this.order = [];
     this.current = null;
@@ -257,7 +261,7 @@ class Radio extends EventEmitter {
     return emitter;
   }
 
-  removeSong(user: Discord.User, qid: QueueItem['id']) {
+  removeSong(user: Discord.User, qid: QueueItem.id) {
     const queue = this.queues.get(user.id);
     if (!queue) return;
 
@@ -311,12 +315,12 @@ class Radio extends EventEmitter {
   }
 }
 
-interface Radio {
-  on(event: 'history', listener: (history: Radio['history']) => void): this;
-  on(event: 'order', listener: (order: Radio['order']) => void): this;
-  on(event: 'skips', listener: (skips: Radio['skips'], needed: number) => void): this;
+/*interface Radio {
+  on(event: 'history', listener: (history: Radio.history) => void): this;
+  on(event: 'order', listener: (order: Radio.order) => void): this;
+  on(event: 'skips', listener: (skips: Radio.skips, needed: number) => void): this;
   on(event: 'queue', listener: (user: Discord.User, queue: QueueItem[]) => void): this;
   on(event: 'song', listener: (fp?: string, song?: SongInfoExtended) => void): this;
-}
+}*/
 
 export default Radio;
