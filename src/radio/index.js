@@ -7,13 +7,13 @@ import events from 'events';
 
 const { EventEmitter } = events; 
 
-import * as uuid from 'uuid';
+import uuid from 'uuid/v4';
 import * as mkdirp from 'mkdirp';
 import * as Discord from 'discord.js';
 
 import Application from '..';
-import handlers, { SongInfo } from 'src/radio/handlers';
-import replaygain from './replaygain';
+import handlers, { SongInfo } from './handlers';
+import replaygain from './replaygain.js';
 
 export interface SongInfoExtended extends SongInfo {
   service: string,
@@ -50,26 +50,27 @@ export function trimUser(user: Discord.User): UserInfo {
 }
 
 //type QueueItem = [string, SongInfoExtended, number];
-export interface QueueItem {
-  fp: string;
-  song: SongInfoExtended;
-  id: string;
+export type QueueItem = {
+  fp: string,
+  song: SongInfoExtended,
+  id: string,
 }
 
-interface AddSongEmitter extends EventEmitter {
+/*interface AddSongEmitter extends EventEmitter {
   on(event: 'error', listener: (err: Error) => void): this;
   on(event: 'meta', listener: (song: SongInfoExtended) => void): this;
   on(event: 'downloading', listener: () => void): this;
   on(event: 'processing', listener: () => void): this;
   on(event: 'done', listener: (song: SongInfoExtended) => void): this;
-}
+}*/
 
 class Radio extends EventEmitter {
   queues: Map<string, QueueItem[]>;
   order: Discord.User[];
-  current: SongInfoExtended;
+  current: ?SongInfoExtended;
   history: SongInfoExtended[];
   skips: Set<string>;
+  app: Application;
 
   constructor(app: Application) {
     super();
@@ -95,8 +96,9 @@ class Radio extends EventEmitter {
     if (!this.current) {
       this.order.push(user);
     } else {
+      const currentId = this.current.player.dj.id;
       let last = this.order.pop();
-      if (last && last.id !== this.current.player.dj.id) {
+      if (last && last.id !== currentId) {
         this.order.push(last);
         last = null;
       }
@@ -149,7 +151,7 @@ class Radio extends EventEmitter {
     const handler = handlers(link, this.app.config);
     if (!handler) return null;
 
-    const emitter: AddSongEmitter = new EventEmitter();
+    const emitter = new EventEmitter();
 
     handler.getMeta((err, song: SongInfoExtended) => {
       if (err) return emitter.emit('error', err);
@@ -167,7 +169,7 @@ class Radio extends EventEmitter {
       const fp = path.join(cache, song.id.toString());
       const key = ['radio', service, song.id].join(':');
 
-      function getFile(fp: string, cb: (error: Error, success?: boolean) => void) {
+      function getFile(fp: string, cb: (error: ?Error, success?: boolean) => void) {
         function download() {
           mkdirp(cache, (err2) => {
             if (err) {
@@ -200,9 +202,9 @@ class Radio extends EventEmitter {
         });
       }
 
-      function promisify(func: (cb: (err: Error, res?: any) => void) => any) {
+      function promisify(func: (cb: (err: ?Error, res?: any) => void) => any) {
         return new Promise((resolve, reject) => {
-          func((err: Error, res?: any) => {
+          func((err: ?Error, res?: any) => {
             if (err) {
               reject(err);
             } else {
@@ -216,15 +218,12 @@ class Radio extends EventEmitter {
         promisify(cb => getFile(fp, cb)),
         promisify(cb => this.app.db.get(key, cb)),
       ])
-      .catch((err) => {
-        emitter.emit(err);
-      })
       .then((res: any[]) => {
         const self = this;
         function finish(song: SongInfoExtended) {
           const uid = user.id;
           if (!self.queues.has(uid)) self.queues.set(uid, []);
-          const q = self.queues.get(uid);
+          const q = self.queues.get(uid) || [];
           q.push({ fp, song, id: uuid() });
 
           emitter.emit('done', song);
@@ -245,23 +244,27 @@ class Radio extends EventEmitter {
         if (!data) {
           emitter.emit('processing');
 
-          replaygain(fp, (err, gain) => {
-            if (err) return emitter.emit('error', err);
-
+          replaygain(fp).then( gain => {
             song.gain = gain;
             finish(song);
+          })
+          .catch(err => {
+            emitter.emit('error', err);
           });
         } else {
           song.gain = data.gain;
           finish(song);
         }
+      })
+      .catch((err) => {
+        emitter.emit(err);
       });
     });
 
     return emitter;
   }
 
-  removeSong(user: Discord.User, qid: QueueItem.id) {
+  removeSong(user: Discord.User, qid: string) {
     const queue = this.queues.get(user.id);
     if (!queue) return;
 
@@ -286,16 +289,18 @@ class Radio extends EventEmitter {
     }
 
     if (this.order.length > 0) {
+      // $FlowFixMe
       const index = this.order.findIndex(u => this.queues.has(u.id) && this.queues.get(u.id).length > 0);
       if (index !== -1) {
         const user = this.order[index];
-        const queue = this.queues.get(user.id);
+        const queue = this.queues.get(user.id) || [];
         const data = queue.shift();
 
         this.order.push(...this.order.splice(0, index + 1));
 
         const { fp } = data;
         this.current = data.song;
+        // $FlowFixMe
         this.current.player = {
           dj: trimUser(user),
           startTime: Date.now(),

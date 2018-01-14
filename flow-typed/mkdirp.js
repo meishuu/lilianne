@@ -1,4 +1,11 @@
 /* @flow */
 declare module 'mkdirp' {
-    declare module.exports: any;
-  }
+  declare type Options = number | { mode?: number; fs?: mixed };
+
+  declare type Callback = (err: ?Error, path: ?string) => void;
+
+  declare module.exports: {
+    (path: string, options?: Options | Callback, callback?: Callback): void;
+    sync(path: string, options?: Options): void;
+  };
+}
