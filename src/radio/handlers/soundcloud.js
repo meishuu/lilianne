@@ -1,3 +1,5 @@
+/* @flow */
+
 import { URL, parse as parseUrl } from 'url';
 import * as qs from 'querystring';
 const fetch = require('node-fetch'); // FIXME needs babel for es6 module support

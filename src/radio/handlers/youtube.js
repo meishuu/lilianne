@@ -1,3 +1,5 @@
+/* @flow */
+
 import { parse as parseUrl } from 'url';
 import * as ytdl from 'ytdl-core';
 

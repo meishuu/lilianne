@@ -1,3 +1,5 @@
+/* @flow */
+
 // REQUIRES
 import * as fs from 'fs';
 import * as url from 'url';
@@ -6,10 +8,10 @@ import * as path from 'path';
 import * as https from 'https';
 
 // express
-import * as express from 'express';
-import * as compression from 'compression';
-import * as express_session from 'express-session';
-import * as connect_redis from 'connect-redis';
+import express from 'express';
+import compression from 'compression';
+import express_session from 'express-session';
+import connect_redis from 'connect-redis';
 const RedisStore = connect_redis(express_session);
 
 // passport
@@ -31,8 +33,10 @@ const SCOPES = ['identify'];
 export default class Web {
   io: SocketIO.Server;
   server: http.Server | https.Server;
+  base: Application;
 
-  constructor(public base: Application) {
+  constructor(base: Application) {
+    this.base = base;
     const { tls } = base.config.web;
 
     // APPLICATION
@@ -79,7 +83,7 @@ export default class Web {
 
     app.use(store);
     io.use((socket, next) => {
-      store(socket.request, <express.Response>{}, next);
+      store(socket.request, {}, next);
     });
 
     // AUTHENTICATION
