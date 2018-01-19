@@ -1,7 +1,12 @@
-import { EventEmitter } from 'events';
-import * as Discord from 'discord.js';
+/* @flow */
+
+import events from 'events';
+
+import Discord from 'discord.js';
 
 import Application from '..';
+
+const { EventEmitter } = events;
 
 const BASELINE_DB = -16;
 
@@ -29,7 +34,7 @@ function humanize(n: number) {
     n = trunc(n / 1000);
     prefixes.shift();
   }
-  return n + prefixes.shift()!;
+  return n + prefixes.shift();
 }
 
 export default class Bot extends EventEmitter {
@@ -53,8 +58,9 @@ export default class Bot extends EventEmitter {
     this.voiceConnection = null;
 
     const setTopic = () => {
-      if (!this.chatChannel) return;
-      if (!this.chatChannel.permissionsFor(bot.user).has('MANAGE_CHANNELS')) return;
+      const { chatChannel } = this;
+      if (!chatChannel) return;
+      if (!chatChannel.permissionsFor(bot.user).has('MANAGE_CHANNELS')) return;
 
       const $current = radio.current;
       const $order = radio.order;
@@ -75,23 +81,25 @@ export default class Bot extends EventEmitter {
           return (q && q.length > 0) ? `__${u.username}__` : u.username;
         }).join(', ');
       }
-
-      this.chatChannel.setTopic([np, dj].join(' // '));
+      chatChannel.setTopic([np, dj].join(' // '));
     };
 
     bot.on('ready', () => {
-      this.server = bot.guilds.get(app.config.discord.bot.server_id);
-      this.chatChannel = <Discord.TextChannel>this.server.channels.get(app.config.discord.bot.text_channel);
-      this.voiceChannel = <Discord.VoiceChannel>this.server.channels.get(app.config.discord.bot.voice_channel);
+      const server = bot.guilds.get(app.config.discord.bot.server_id);
+      const chatChannel = server.channels.get(app.config.discord.bot.text_channel);
+      const voiceChannel = server.channels.get(app.config.discord.bot.voice_channel);
+      this.server = server;
+      this.chatChannel = chatChannel;
+      this.voiceChannel = voiceChannel;
 
-      for (const [id, member] of Array.from(this.voiceChannel.members)) {
+      const currVoiceChannel = this.voiceChannel;
+      for (const [id, member] of Array.from(currVoiceChannel.members)) {
         if (id !== bot.user.id && !member.user.bot) {
           radio.addDj(member.user);
         }
       }
       setTopic();
-
-      this.voiceChannel.join()
+      currVoiceChannel.join()
         .then((connection) => {
           this.voiceConnection = connection;
         })
@@ -101,7 +109,9 @@ export default class Bot extends EventEmitter {
     });
 
     bot.on('message', (message) => {
-      if (message.channel.id !== this.chatChannel.id) return;
+      if(this.chatChannel){
+        if (message.channel.id !== this.chatChannel.id) return;
+      }
       if (message.author.id === bot.user.id) return;
 
       const args = message.content.split(/\s+/g);
@@ -110,21 +120,24 @@ export default class Bot extends EventEmitter {
         case '!play':
         case '!queue': {
           const res = radio.addSong(args[1], message.author);
-          res.on('error', (err) => {
-            message.reply(`I couldn't add that! The error was: \`${err.message}\``);
-            console.error(err.stack);
-          });
-          res.on('done', (song) => {
-            const duration = timeStr(song.duration);
+          if (!res){
+            break;
+          }
+            res.on('error', (err) => {
+              message.reply(`I couldn't add that! The error was: \`${err.message}\``);
+              console.error(err.stack);
+            });
+            res.on('done', (song) => {
+              const duration = timeStr(song.duration);
 
-            message.reply(
-              `queueing ${song.title} [${duration}] uploaded by ${song.uploader.name}` +
-              '' // ` (${rating_str}★ / ${views_str} views)`
-            );
+              message.reply(
+                `queueing ${song.title} [${duration}] uploaded by ${song.uploader.name}` +
+                '' // ` (${rating_str}★ / ${views_str} views)`
+              );
 
-            setTopic();
-          });
-          break;
+              setTopic();
+            });
+            break;
         }
         default: {
           break; // do nothing
@@ -135,13 +148,14 @@ export default class Bot extends EventEmitter {
     bot.on('voiceStateUpdate', (oldMember, newMember) => {
       if (oldMember.voiceChannelID === newMember.voiceChannelID) return;
       if (newMember.user.bot) return;
-
-      if (newMember.voiceChannelID === this.voiceChannel.id) {
-        radio.addDj(newMember.user);
-        setTopic();
-      } else if (oldMember.voiceChannelID === this.voiceChannel.id) {
-        radio.removeDj(newMember.user);
-        setTopic();
+      if (this.voiceChannel) {
+        if (newMember.voiceChannelID === this.voiceChannel.id) {
+          radio.addDj(newMember.user);
+          setTopic();
+        } else if (oldMember.voiceChannelID === this.voiceChannel.id) {
+          radio.removeDj(newMember.user);
+          setTopic();
+        }
       }
     });
 
@@ -152,7 +166,7 @@ export default class Bot extends EventEmitter {
     }, 1000);
 
     radio.on('song', (fp, song) => {
-      if (song) {
+      if (song && this.voiceConnection) {
         const dispatcher = this.voiceConnection.playFile(fp, { volume: 0 });
         dispatcher.setVolumeDecibels(BASELINE_DB + song.gain);
       }
