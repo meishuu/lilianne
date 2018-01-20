@@ -1,17 +1,18 @@
 /* @flow */
+/* eslint-disable camelcase */
 
-import { URL, parse as parseUrl } from 'url';
+import {URL, parse as parseUrl} from 'url';
 import qs from 'querystring';
 import fetch from 'node-fetch';
 
-import { Writable } from 'stream';
-import { Handler, SongInfo } from '../handlers';
-import type { ConfigOptions } from '../..';
+import {Writable} from 'stream';
+import {Handler, SongInfo} from '../handlers';
+import type {ConfigOptions} from '../..';
 
 export default class SoundCloud implements Handler {
   static match(link: string) {
     const parse = parseUrl(link);
-    return (parse.hostname === 'snd.sc' || /(www\.)?soundcloud\.com/.test(String(parse.hostname)));
+    return parse.hostname === 'snd.sc' || /(www\.)?soundcloud\.com/.test(String(parse.hostname));
   }
 
   stream_url: string;
@@ -37,7 +38,7 @@ export default class SoundCloud implements Handler {
       client_id: this.key,
     });
 
-    fetch(url.href, { redirect: 'follow' })
+    fetch(url.href, {redirect: 'follow'})
       .then((res: any) =>
         res.json().then((data: any) => {
           // check api error
@@ -76,8 +77,8 @@ export default class SoundCloud implements Handler {
 
   download(stream: Writable) {
     const url = new URL(this.stream_url);
-    url.search = qs.stringify({ client_id: this.key });
+    url.search = qs.stringify({client_id: this.key});
     fetch(url.href).then((res: any) => res.body.pipe(stream));
     return stream;
   }
-};
+}

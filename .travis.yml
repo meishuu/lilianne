@@ -1,0 +1,17 @@
+language: node_js
+
+jobs:
+  include:
+    - stage: code quality
+      script: "yarn run flow"
+      node_js: node
+    - script: "yarn run format --list-different"
+      node_js: node
+    - script: "yarn run lint"
+      node_js: node
+
+    - stage: build
+      script: "yarn build"
+      node_js:
+        - node
+        - lts/*

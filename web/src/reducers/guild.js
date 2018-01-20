@@ -1,4 +1,4 @@
-import { INITIALIZE } from '../actions';
+import {INITIALIZE} from '../actions';
 
 export default function guild(state = {}, action) {
   if (action.type === INITIALIZE) {

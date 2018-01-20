@@ -3,16 +3,16 @@
 import Discord from 'discord.js';
 
 import Web from '.';
-import Radio, { SongInfoExtended, UserInfo, trimUser } from '../radio';
+import {SongInfoExtended, UserInfo, trimUser} from '../radio';
 import type {QueueItem} from '../radio';
 export default function webapp(web: Web) {
-  const { base, io } = web;
-  const { radio } = base;
+  const {base, io} = web;
+  const {radio} = base;
 
   let current: SongInfoExtended | null = null;
   let order: UserInfo[] = [];
 
-  radio.on('history', (history) => {
+  radio.on('history', history => {
     io.emit('history', history);
   });
 
@@ -27,32 +27,32 @@ export default function webapp(web: Web) {
     io.emit('song', current);
   });
 
-  radio.on('order', (newOrder) => {
+  radio.on('order', newOrder => {
     order = newOrder.map(trimUser);
     io.emit('order', order);
   });
 
-  radio.on('queue', (user, queue) => {
+  radio.on('queue', (_user, _queue) => {
     // ?
   });
 
-  io.on('connection', (socket) => {
+  io.on('connection', socket => {
     let adding = false;
 
     // CHECK ERRORS
     if (!socket.request.session || !socket.request.session.passport) {
-      socket.emit('app error', { type: 'not authenticated' });
+      socket.emit('app error', {type: 'not authenticated'});
       return;
     }
 
     if (!base.bot.server) {
-      socket.emit('app error', { type: 'not connected' });
+      socket.emit('app error', {type: 'not connected'});
       return;
     }
 
-    const { id } = socket.request.session.passport.user;
-    const { server } = base.bot;
-    const { voiceChannel } = base.bot;
+    const {id} = socket.request.session.passport.user;
+    const {server} = base.bot;
+    const {voiceChannel} = base.bot;
     if (!server.members.has(id) && voiceChannel) {
       socket.emit('app error', {
         type: 'not in server',
@@ -69,12 +69,12 @@ export default function webapp(web: Web) {
 
     const member = server.members.get(id);
     if (!member) return; // TODO
-    const { user } = member;
+    const {user} = member;
 
     // RADIO HOOKS
     function onQueue(u: Discord.User, queue: QueueItem[]) {
       if (u.id !== user.id) return;
-      socket.emit('queue', queue.map(({ fp, ...item }) => item));
+      socket.emit('queue', queue.map(({fp, ...item}) => item)); // eslint-disable-line no-unused-vars
     }
 
     radio.on('queue', onQueue);
@@ -97,12 +97,12 @@ export default function webapp(web: Web) {
 
       adding = true;
 
-      res.on('error', (err) => {
+      res.on('error', err => {
         socket.emit('add status', 'error', err);
         adding = false;
       });
 
-      res.on('meta', (song) => {
+      res.on('meta', song => {
         socket.emit('add status', 'meta', song);
       });
 
@@ -114,7 +114,7 @@ export default function webapp(web: Web) {
         socket.emit('add status', 'processing');
       });
 
-      res.on('done', (song) => {
+      res.on('done', song => {
         socket.emit('add status', 'done', song);
         adding = false;
       });
@@ -127,7 +127,7 @@ export default function webapp(web: Web) {
     // SEND INIT
     if (current) current.player.currentTime = Date.now();
     const queue = radio.queues.get(id) || [];
-    if(server && voiceChannel){
+    if (server && voiceChannel) {
       socket.emit('load', {
         id,
         server: {
@@ -137,10 +137,10 @@ export default function webapp(web: Web) {
           channel: voiceChannel.name, // TODO
         },
         order,
-        queue: queue.map(({ fp, ...item }) => item),
+        queue: queue.map(({fp, ...item}) => item), // eslint-disable-line no-unused-vars
         current,
         history: radio.history,
       });
     }
   });
-};
+}

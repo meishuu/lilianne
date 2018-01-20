@@ -1,4 +1,4 @@
-import { combineReducers } from 'redux'
+import {combineReducers} from 'redux';
 import error from './error';
 import self from './self';
 import guild from './guild';

@@ -1,12 +1,12 @@
 import React from 'react';
-import { connect } from 'react-redux';
-import { getSongQueues } from '../reducers/queue';
+import {connect} from 'react-redux';
+import {getSongQueues} from '../reducers/queue';
 
-import { addSong, removeSong } from '../actions';
+import {addSong, removeSong} from '../actions';
 import SongQueueItem from './SongQueueItem';
 
-function SongQueue({ queues, doQueueAdd, doQueueRemove }) {
-  const { queue, errors, processing } = queues;
+function SongQueue({queues, doQueueAdd, doQueueRemove}) {
+  const {queue, errors, processing} = queues;
   let input;
 
   function onSubmit(event) {
@@ -23,11 +23,7 @@ function SongQueue({ queues, doQueueAdd, doQueueRemove }) {
     return () => doQueueRemove(id);
   }
 
-  const items = [
-    ...queue,
-    ...errors,
-    ...(processing ? [processing] : []),
-  ];
+  const items = [...queue, ...errors, ...(processing ? [processing] : [])];
 
   return (
     <div className="song-queue-wrap flex-vertical flex-spacer">
@@ -37,12 +33,7 @@ function SongQueue({ queues, doQueueAdd, doQueueRemove }) {
             <h2>Your Queue</h2>
             <div className="song-queue sortable">
               {items.map((data, index) => (
-                <SongQueueItem
-                  key={data.id}
-                  index={index}
-                  data={data}
-                  onDelete={onDelete(data.id)}
-                />
+                <SongQueueItem key={data.id} index={index} data={data} onDelete={onDelete(data.id)} />
               ))}
             </div>
           </div>
@@ -53,7 +44,9 @@ function SongQueue({ queues, doQueueAdd, doQueueRemove }) {
               <input
                 type="text"
                 placeholder="Add a song by URL"
-                ref={node => { input = node }}
+                ref={node => {
+                  input = node;
+                }}
               />
             </div>
           </div>
@@ -66,7 +59,7 @@ function SongQueue({ queues, doQueueAdd, doQueueRemove }) {
 function mapDispatchToProps(dispatch) {
   return {
     doQueueAdd(url) {
-      dispatch(addSong({ url }));
+      dispatch(addSong({url}));
     },
 
     doQueueMove() {
@@ -74,7 +67,7 @@ function mapDispatchToProps(dispatch) {
     },
 
     doQueueRemove(id) {
-      dispatch(removeSong({ id }));
+      dispatch(removeSong({id}));
     },
   };
 }

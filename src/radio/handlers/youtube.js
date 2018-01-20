@@ -1,15 +1,15 @@
 /* @flow */
 
-import { parse as parseUrl } from 'url';
+import {parse as parseUrl} from 'url';
 import ytdl from 'ytdl-core';
 
-import { Writable } from 'stream';
-import { Handler, SongInfo } from '../handlers';
+import {Writable} from 'stream';
+import {Handler, SongInfo} from '../handlers';
 
 export default class YouTube implements Handler {
   static match(link: string) {
     const parse = parseUrl(link);
-    return (parse.hostname === 'youtu.be' || /\byoutube\b/.test(String(parse.hostname)));
+    return parse.hostname === 'youtu.be' || /\byoutube\b/.test(String(parse.hostname));
   }
 
   info: ytdl.videoInfo;
@@ -47,6 +47,6 @@ export default class YouTube implements Handler {
   }
 
   download(stream: Writable) {
-    return ytdl.downloadFromInfo(this.info, { filter: 'audioonly' }).pipe(stream);
+    return ytdl.downloadFromInfo(this.info, {filter: 'audioonly'}).pipe(stream);
   }
-};
+}

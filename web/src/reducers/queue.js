@@ -1,32 +1,26 @@
-import {
-  INITIALIZE,
-  ADD_SONG,
-  REMOVE_SONG,
-  SET_LOCAL_QUEUE,
-  SET_SONG_STATUS,
-} from '../actions';
+import {INITIALIZE, ADD_SONG, REMOVE_SONG, SET_LOCAL_QUEUE, SET_SONG_STATUS} from '../actions';
 
 let i = 0;
 
 function updateStatus(item, type, data) {
   switch (type) {
     case 'error':
-      return { ...item, error: data, status: data.error };
+      return {...item, error: data, status: data.error};
     case 'meta':
-      return { ...item, song: data, status: 'waiting...' };
+      return {...item, song: data, status: 'waiting...'};
     case 'downloading':
-      return { ...item, status: 'downloading...' };
+      return {...item, status: 'downloading...'};
     case 'processing':
-      return { ...item, status: 'processing...' };
+      return {...item, status: 'processing...'};
     case 'done':
-      return { ...item, status: null };
+      return {...item, status: null};
     default:
       console.log(type, data);
-      return { ...item, status: 'unknown' };
+      return {...item, status: 'unknown'};
   }
 }
 
-export default function queue(state = { queue: [], errors: [], processing: null }, action) {
+export default function queue(state = {queue: [], errors: [], processing: null}, action) {
   switch (action.type) {
     case INITIALIZE:
       return {
@@ -46,12 +40,12 @@ export default function queue(state = { queue: [], errors: [], processing: null 
       };
 
     case REMOVE_SONG: {
-      const { id } = action.payload;
-      const { processing } = state;
+      const {id} = action.payload;
+      const {processing} = state;
       return {
         queue: state.queue.filter(item => item.id !== id),
         errors: state.errors.filter(item => item.id !== id),
-        processing: (processing && processing.id !== id) ? processing : null,
+        processing: processing && processing.id !== id ? processing : null,
       };
     }
 
@@ -93,5 +87,5 @@ export default function queue(state = { queue: [], errors: [], processing: null 
 }
 
 export function getSongQueues(state) {
-  return { queues: state.queue };
+  return {queues: state.queue};
 }

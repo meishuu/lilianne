@@ -1,7 +1,7 @@
 /* @flow */
 
 import path from 'path';
-import { static as serveStatic, Express } from 'express';
+import {static as serveStatic, Express} from 'express';
 
 export default function serve(app: Express) {
   // serve compiled content
@@ -15,9 +15,11 @@ export default function serve(app: Express) {
     const config = require('../../web/config/webpack.config.dev');
     const compiler = webpack(config);
 
-    app.use(webpackDevMiddleware(compiler, {
-      publicPath: config.output.publicPath,
-    }));
+    app.use(
+      webpackDevMiddleware(compiler, {
+        publicPath: config.output.publicPath,
+      })
+    );
 
     app.use(webpackHotMiddleware(compiler));
   }

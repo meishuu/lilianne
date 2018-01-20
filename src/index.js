@@ -1,4 +1,5 @@
 /* @flow */
+/* eslint-disable import/first */
 
 if (process.env.NODE_ENV !== 'production') process.env.NODE_ENV = 'development';
 
@@ -37,15 +38,17 @@ export type ConfigOptions = {
     tls?: {
       key: string,
       cert: string,
-      hsts?: boolean | {
-        force?: boolean,
-        maxAge: number,
-        includeSubDomains?: boolean,
-        preload?: boolean,
-      },
+      hsts?:
+        | boolean
+        | {
+            force?: boolean,
+            maxAge: number,
+            includeSubDomains?: boolean,
+            preload?: boolean,
+          },
     },
   },
-}
+};
 
 export default class Application {
   config: ConfigOptions;
@@ -74,4 +77,5 @@ export default class Application {
   }
 }
 
+// eslint-disable-next-line no-new
 if (require.main === module) new Application();

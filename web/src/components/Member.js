@@ -2,7 +2,7 @@ import React from 'react';
 //import './Member.css';
 import classNames from 'classnames';
 
-import { UserAvatar } from './DiscordIcon';
+import {UserAvatar} from './DiscordIcon';
 
 export default function Member(props) {
   const memberClasses = classNames('member', {

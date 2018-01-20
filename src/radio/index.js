@@ -1,11 +1,9 @@
-/* eslint-disable no-param-reassign, no-shadow */
 /* @flow */
+/* eslint-disable no-param-reassign, no-shadow */
 
 import fs from 'fs';
 import path from 'path';
 import events from 'events';
-
-const { EventEmitter } = events; 
 
 import uuid from 'uuid/v4';
 import mkdirp from 'mkdirp';
@@ -13,17 +11,19 @@ import Discord from 'discord.js';
 
 import Application from '..';
 import handlers from './handlers';
-import type { SongInfo } from './handlers';
-import replaygain from './replaygain.js';
+import type {SongInfo} from './handlers';
+import replaygain from './replaygain';
+
+const {EventEmitter} = events;
 
 export interface SongInfoExtended extends SongInfo {
-  service: string,
-  gain: number,
+  service: string;
+  gain: number;
   player: {
     dj: UserInfo,
     startTime: number, // in ms
     currentTime?: number, // in ms
-  },
+  };
 }
 
 export interface UserInfo {
@@ -34,27 +34,22 @@ export interface UserInfo {
   avatar: string;
 }
 
-const getUid = (() => {
-  let uid = 0;
-  return () => uid++;
-})();
-
 function skipRatio(length: number) {
   const minutes = length / 60;
   return 0.6 - 0.3 / (1 + Math.exp(3 - minutes / 3)); // eslint-disable-line no-mixed-operators
 }
 
 export function trimUser(user: Discord.User): UserInfo {
-  const { username, discriminator, id, avatar } = user;
+  const {username, discriminator, id, avatar} = user;
   const name = username; // TODO
-  return { name, username, discriminator, id, avatar };
+  return {name, username, discriminator, id, avatar};
 }
 
 export type QueueItem = {
   fp: string,
   song: SongInfoExtended,
   id: string,
-}
+};
 
 /*
 interface AddSongEmitter extends EventEmitter {
@@ -84,7 +79,8 @@ class Radio extends EventEmitter {
     this.history = [];
     this.skips = new Set();
 
-    app.db.lrange('radio:history', 0, 19, (err: Error, res?: any[]) => {
+    // eslint-disable-next-line handle-callback-err
+    app.db.lrange('radio:history', 0, 19, (err: Error, res?: string[]) => {
       if (res) {
         this.history = res.map(s => JSON.parse(s));
         this.emit('history', this.history);
@@ -143,7 +139,6 @@ class Radio extends EventEmitter {
     if (!this.current) return false;
 
     const ratio = skipRatio(this.current.duration);
-    const skipped = this.skips.size;
     const total = this.order.length;
     const needed = Math.ceil(ratio * total);
     this.emit('skips', this.skips, needed);
@@ -173,15 +168,20 @@ class Radio extends EventEmitter {
 
       function getFile(fp: string, cb: (error: ?Error, success?: boolean) => void) {
         function download() {
-          mkdirp(cache, (err2) => {
+          mkdirp(cache, err2 => {
             if (err) {
               cb(err2);
               return;
             }
 
-            handler.download(fs.createWriteStream(fp))
-              .on('error', (err3) => { cb(err3); })
-              .on('finish', () => { cb(null, true); });
+            handler
+              .download(fs.createWriteStream(fp))
+              .on('error', err3 => {
+                cb(err3);
+              })
+              .on('finish', () => {
+                cb(null, true);
+              });
 
             emitter.emit('downloading');
           });
@@ -195,7 +195,7 @@ class Radio extends EventEmitter {
             } else {
               cb(err);
             }
-          // cached
+            // cached
           } else if (stats.size === 0) {
             download();
           } else {
@@ -216,51 +216,49 @@ class Radio extends EventEmitter {
         });
       }
 
-      Promise.all([
-        promisify(cb => getFile(fp, cb)),
-        promisify(cb => this.app.db.get(key, cb)),
-      ])
-      .then((res: any[]) => {
-        const self = this;
-        function finish(song: SongInfoExtended) {
-          const uid = user.id;
-          if (!self.queues.has(uid)) self.queues.set(uid, []);
-          const q = self.queues.get(uid) || [];
-          q.push({ fp, song, id: uuid() });
+      Promise.all([promisify(cb => getFile(fp, cb)), promisify(cb => this.app.db.get(key, cb))])
+        .then((res: any[]) => {
+          const self = this;
+          function finish(song: SongInfoExtended) {
+            const uid = user.id;
+            if (!self.queues.has(uid)) self.queues.set(uid, []);
+            const q = self.queues.get(uid) || [];
+            q.push({fp, song, id: uuid()});
 
-          emitter.emit('done', song);
-          self.emit('queue', user, q);
+            emitter.emit('done', song);
+            self.emit('queue', user, q);
 
-          self.app.db.multi()
-            .set(key, JSON.stringify(song))
-            .sadd(['radio', service].join(':'), song.id)
-            .exec();
-        }
+            self.app.db
+              .multi()
+              .set(key, JSON.stringify(song))
+              .sadd(['radio', service].join(':'), song.id)
+              .exec();
+          }
 
-        let data;
-        try {
-          data = JSON.parse(res[1]);
-        } catch (e) {
-        }
+          let data;
+          try {
+            data = JSON.parse(res[1]);
+          } catch (e) {}
 
-        if (!data) {
-          emitter.emit('processing');
+          if (!data) {
+            emitter.emit('processing');
 
-          replaygain(fp).then(gain => {
-            song.gain = gain;
+            replaygain(fp)
+              .then(gain => {
+                song.gain = gain;
+                finish(song);
+              })
+              .catch(err => {
+                emitter.emit('error', err);
+              });
+          } else {
+            song.gain = data.gain;
             finish(song);
-          })
-          .catch(err => {
-            emitter.emit('error', err);
-          });
-        } else {
-          song.gain = data.gain;
-          finish(song);
-        }
-      })
-      .catch((err) => {
-        emitter.emit(err);
-      });
+          }
+        })
+        .catch(err => {
+          emitter.emit(err);
+        });
     });
 
     return emitter;
@@ -300,7 +298,7 @@ class Radio extends EventEmitter {
 
         this.order.push(...this.order.splice(0, index + 1));
 
-        const { fp } = data;
+        const {fp} = data;
         this.current = data.song;
         // $FlowFixMe
         this.current.player = {

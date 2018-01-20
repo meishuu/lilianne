@@ -1,18 +1,13 @@
 /* @flow */
 
-import { spawn } from 'child_process';
+import {spawn} from 'child_process';
 
 const regex = /track_gain = (.+?) dB/;
-const nul = (process.platform === 'win32') ? 'nul' : '/dev/null';
+const nul = process.platform === 'win32' ? 'nul' : '/dev/null';
 
 export default function replaygain(fp: string): Promise<number> {
   return new Promise((resolve, reject) => {
-    const enc = spawn('ffmpeg', [
-      '-i', fp,
-      '-af', 'replaygain',
-      '-f', 'null',
-      nul,
-    ]);
+    const enc = spawn('ffmpeg', ['-i', fp, '-af', 'replaygain', '-f', 'null', nul]);
 
     let found = false;
 
@@ -27,7 +22,7 @@ export default function replaygain(fp: string): Promise<number> {
       resolve(parseFloat(match[1]));
     });
 
-    enc.on('close', (code) => {
+    enc.on('close', code => {
       if (code !== 0) {
         reject(new Error(`ffmpeg return code: ${code}`));
       } else if (!found) {
@@ -35,4 +30,4 @@ export default function replaygain(fp: string): Promise<number> {
       }
     });
   });
-};
+}

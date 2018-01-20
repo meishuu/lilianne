@@ -6,7 +6,7 @@ import Discord from 'discord.js';
 
 import Application from '..';
 
-const { EventEmitter } = events;
+const {EventEmitter} = events;
 
 const BASELINE_DB = -16;
 
@@ -15,7 +15,7 @@ function timeStr(s: number) {
 
   let m = Math.floor(s / 60);
   s %= 60;
-  let h = Math.floor(m / 60);
+  const h = Math.floor(m / 60);
   m %= 60;
 
   if (h > 0) {
@@ -23,18 +23,6 @@ function timeStr(s: number) {
   } else {
     return [m, pad(s)].join(':');
   }
-}
-
-function humanize(n: number) {
-  const trunc = (n: number) => Number(Number(n).toPrecision(3));
-
-  const prefixes = ['', 'k', 'm', 'b', 't', 'q'];
-  n = trunc(n);
-  while (n > 1000 && prefixes.length > 0) {
-    n = trunc(n / 1000);
-    prefixes.shift();
-  }
-  return n + prefixes.shift();
 }
 
 export default class Bot extends EventEmitter {
@@ -58,7 +46,7 @@ export default class Bot extends EventEmitter {
     this.voiceConnection = null;
 
     const setTopic = () => {
-      const { chatChannel } = this;
+      const {chatChannel} = this;
       if (!chatChannel) return;
       if (!chatChannel.permissionsFor(bot.user).has('MANAGE_CHANNELS')) return;
 
@@ -67,19 +55,18 @@ export default class Bot extends EventEmitter {
       const $queues = radio.queues;
 
       let np = 'Now Playing: ';
-      np += ($current
-        ? `${$current.title} [${timeStr($current.duration)}] <${$current.player.dj.username}>`
-        : 'Nothing'
-      );
+      np += $current ? `${$current.title} [${timeStr($current.duration)}] <${$current.player.dj.username}>` : 'Nothing';
 
       let dj = 'DJ order: ';
       if ($order.length === 0) {
         dj += 'Nobody';
       } else {
-        dj += $order.map(u => {
-          const q = $queues.get(u.id);
-          return (q && q.length > 0) ? `__${u.username}__` : u.username;
-        }).join(', ');
+        dj += $order
+          .map(u => {
+            const q = $queues.get(u.id);
+            return q && q.length > 0 ? `__${u.username}__` : u.username;
+          })
+          .join(', ');
       }
       chatChannel.setTopic([np, dj].join(' // '));
     };
@@ -99,17 +86,18 @@ export default class Bot extends EventEmitter {
         }
       }
       setTopic();
-      currVoiceChannel.join()
-        .then((connection) => {
+      currVoiceChannel
+        .join()
+        .then(connection => {
           this.voiceConnection = connection;
         })
-        .catch((err) => {
+        .catch(err => {
           console.warn(err);
         });
     });
 
-    bot.on('message', (message) => {
-      if(this.chatChannel){
+    bot.on('message', message => {
+      if (this.chatChannel) {
         if (message.channel.id !== this.chatChannel.id) return;
       }
       if (message.author.id === bot.user.id) return;
@@ -120,24 +108,23 @@ export default class Bot extends EventEmitter {
         case '!play':
         case '!queue': {
           const res = radio.addSong(args[1], message.author);
-          if (!res){
+          if (!res) {
             break;
           }
-            res.on('error', (err) => {
-              message.reply(`I couldn't add that! The error was: \`${err.message}\``);
-              console.error(err.stack);
-            });
-            res.on('done', (song) => {
-              const duration = timeStr(song.duration);
+          res.on('error', err => {
+            message.reply(`I couldn't add that! The error was: \`${err.message}\``);
+            console.error(err.stack);
+          });
+          res.on('done', song => {
+            const duration = timeStr(song.duration);
 
-              message.reply(
-                `queueing ${song.title} [${duration}] uploaded by ${song.uploader.name}` +
-                '' // ` (${rating_str}★ / ${views_str} views)`
-              );
+            message.reply(
+              `queueing ${song.title} [${duration}] uploaded by ${song.uploader.name}` + '' // ` (${rating_str}★ / ${views_str} views)`
+            );
 
-              setTopic();
-            });
-            break;
+            setTopic();
+          });
+          break;
         }
         default: {
           break; // do nothing
@@ -167,7 +154,7 @@ export default class Bot extends EventEmitter {
 
     radio.on('song', (fp, song) => {
       if (song && this.voiceConnection) {
-        const dispatcher = this.voiceConnection.playFile(fp, { volume: 0 });
+        const dispatcher = this.voiceConnection.playFile(fp, {volume: 0});
         dispatcher.setVolumeDecibels(BASELINE_DB + song.gain);
       }
       setTopic();

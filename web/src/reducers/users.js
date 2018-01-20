@@ -1,10 +1,10 @@
-import { INITIALIZE, SET_CURRENT_SONG, SET_DJ_ORDER } from '../actions';
+import {INITIALIZE, SET_CURRENT_SONG, SET_DJ_ORDER} from '../actions';
 
 export default function users(state = {}, action) {
   switch (action.type) {
     case INITIALIZE: {
-      const users = { ...state };
-      const { history, order, current } = action.payload;
+      const users = {...state};
+      const {history, order, current} = action.payload;
 
       for (const song of history) {
         const user = song.player.dj;
@@ -35,7 +35,7 @@ export default function users(state = {}, action) {
     }
 
     case SET_DJ_ORDER: {
-      const users = { ...state };
+      const users = {...state};
 
       for (const user of action.payload) {
         users[user.id] = user;

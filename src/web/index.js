@@ -4,22 +4,20 @@
 import fs from 'fs';
 import url from 'url';
 import http from 'http';
-import path from 'path';
 import https from 'https';
 
 // express
 import express from 'express';
 import compression from 'compression';
-import express_session from 'express-session';
-import connect_redis from 'connect-redis';
-const RedisStore = connect_redis(express_session);
+import expressSession from 'express-session';
+import connectRedis from 'connect-redis';
 
 // passport
 import passport from 'passport';
-const DiscordStrategy = require('passport-discord');
+import DiscordStrategy from 'passport-discord';
 
 // socket.io
-import socket_io from 'socket.io';
+import socketIo from 'socket.io';
 
 // app
 import Application from '..';
@@ -27,6 +25,8 @@ import webapp from './app';
 import serve from './serve';
 
 // CONSTANTS
+const RedisStore = connectRedis(expressSession);
+
 const SCOPES = ['identify'];
 
 // EXPORTS
@@ -37,30 +37,37 @@ export default class Web {
 
   constructor(base: Application) {
     this.base = base;
-    const { tls } = base.config.web;
+    const {tls} = base.config.web;
 
     // APPLICATION
     const app = express();
-    const server = (tls && tls.key && tls.cert)
-      ? https.createServer({
-          key: fs.readFileSync(tls.key, 'utf8'),
-          cert: fs.readFileSync(tls.cert, 'utf8'),
-        }, app)
-      : http.createServer(app);
-    const io = socket_io(server, { serveClient: false });
+    const server =
+      tls && tls.key && tls.cert
+        ? https.createServer(
+            {
+              key: fs.readFileSync(tls.key, 'utf8'),
+              cert: fs.readFileSync(tls.cert, 'utf8'),
+            },
+            app
+          )
+        : http.createServer(app);
+    const io = socketIo(server, {serveClient: false});
 
     // SECURITY
     app.disable('x-powered-by');
 
     if (tls && tls.hsts) {
-      const hsts = (tls.hsts !== true) ? tls.hsts : {
-        force: false,
-        maxAge: 180 * 24 * 60 * 60,
-        includeSubDomains: false,
-        preload: false,
-      };
+      const hsts =
+        tls.hsts !== true
+          ? tls.hsts
+          : {
+              force: false,
+              maxAge: 180 * 24 * 60 * 60,
+              includeSubDomains: false,
+              preload: false,
+            };
 
-      const { force, maxAge, includeSubDomains, preload } = hsts;
+      const {force, maxAge, includeSubDomains, preload} = hsts;
 
       app.use((req, res, next) => {
         if (force || req.secure) {
@@ -74,8 +81,8 @@ export default class Web {
     }
 
     // SESSIONS
-    const store = express_session({
-      store: new RedisStore({ client: base.db, ttl: 7 * 24 * 60 * 60 }),
+    const store = expressSession({
+      store: new RedisStore({client: base.db, ttl: 7 * 24 * 60 * 60}),
       secret: 'Magical Girls represent!',
       resave: false,
       saveUninitialized: false,
@@ -87,14 +94,24 @@ export default class Web {
     });
 
     // AUTHENTICATION
-    passport.use(new DiscordStrategy({
-      clientID: base.config.discord.oauth2.client_id,
-      clientSecret: base.config.discord.oauth2.client_secret,
-      callbackURL: url.resolve(base.config.web.url, 'auth'),
-      scope: SCOPES,
-    }, (accessToken: any, refreshToken: any, profile: any, done: (err: Error | null, user?: any, info?: any) => void) => {
-      process.nextTick(() => done(null, profile));
-    }));
+    passport.use(
+      new DiscordStrategy(
+        {
+          clientID: base.config.discord.oauth2.client_id,
+          clientSecret: base.config.discord.oauth2.client_secret,
+          callbackURL: url.resolve(base.config.web.url, 'auth'),
+          scope: SCOPES,
+        },
+        (
+          accessToken: any,
+          refreshToken: any,
+          profile: any,
+          done: (err: Error | null, user?: any, info?: any) => void
+        ) => {
+          process.nextTick(() => done(null, profile));
+        }
+      )
+    );
 
     passport.serializeUser((user, done) => {
       done(null, user);
@@ -110,15 +127,13 @@ export default class Web {
     app.use(compression());
 
     // ROUTES
-    app.get('/',
+    app.get(
+      '/',
       (req, res, next) => next(req.isAuthenticated() ? 'route' : ''),
-      passport.authenticate('discord', { scope: SCOPES })
+      passport.authenticate('discord', {scope: SCOPES})
     );
 
-    app.get('/auth',
-      passport.authenticate('discord', { failureRedirect: '/' }),
-      (req, res) => res.redirect('/')
-    );
+    app.get('/auth', passport.authenticate('discord', {failureRedirect: '/'}), (req, res) => res.redirect('/'));
 
     app.post('/logout', (req, res) => {
       req.logout();
