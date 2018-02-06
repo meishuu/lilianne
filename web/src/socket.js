@@ -55,7 +55,7 @@ export default store => {
     store.dispatch(actions.setLocalQueue(queue));
   });
 
-  socket.on('add status', (type, data) => {
-    store.dispatch(actions.setSongStatus([type, data]));
+  socket.on('add status', queueItem => {
+    store.dispatch(actions.setSongStatus(queueItem));
   });
 };

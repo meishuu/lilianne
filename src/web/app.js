@@ -37,8 +37,6 @@ export default function webapp(web: Web) {
   });
 
   io.on('connection', socket => {
-    let adding = false;
-
     // CHECK ERRORS
     if (!socket.request.session || !socket.request.session.passport) {
       socket.emit('app error', {type: 'not authenticated'});
@@ -84,39 +82,10 @@ export default function webapp(web: Web) {
 
     // ADD HOOKS
     socket.on('add', (url: string) => {
-      if (adding) {
-        socket.emit('add status', 'error', new Error('Already adding'));
-        return;
-      }
-
       const res = radio.addSong(url, user);
-      if (!res) {
-        socket.emit('add status', 'error', new Error('Invalid URL'));
-        return;
-      }
 
-      adding = true;
-
-      res.on('error', err => {
-        socket.emit('add status', 'error', err);
-        adding = false;
-      });
-
-      res.on('meta', song => {
-        socket.emit('add status', 'meta', song);
-      });
-
-      res.on('downloading', () => {
-        socket.emit('add status', 'downloading');
-      });
-
-      res.on('processing', () => {
-        socket.emit('add status', 'processing');
-      });
-
-      res.on('done', song => {
-        socket.emit('add status', 'done', song);
-        adding = false;
+      res.on('update', queueItem => {
+        socket.emit('add status', queueItem);
       });
     });
 

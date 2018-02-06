@@ -2,23 +2,14 @@ import {INITIALIZE, ADD_SONG, REMOVE_SONG, SET_LOCAL_QUEUE, SET_SONG_STATUS} fro
 
 let i = 0;
 
-function updateStatus(item, type, data) {
-  switch (type) {
-    case 'error':
-      return {...item, error: data, status: data.error};
-    case 'meta':
-      return {...item, song: data, status: 'waiting...'};
-    case 'downloading':
-      return {...item, status: 'downloading...'};
-    case 'processing':
-      return {...item, status: 'processing...'};
-    case 'done':
-      return {...item, status: null};
-    default:
-      console.log(type, data);
-      return {...item, status: 'unknown'};
-  }
-}
+const QueueItemStatus = {
+  INVALID: 0,
+  UNKNOWN: 1,
+  WAITING: 2,
+  DOWNLOADING: 3,
+  PROCESSING: 4,
+  DONE: 5,
+};
 
 export default function queue(state = {queue: [], errors: [], processing: null}, action) {
   switch (action.type) {
@@ -57,28 +48,12 @@ export default function queue(state = {queue: [], errors: [], processing: null},
     }
 
     case SET_SONG_STATUS: {
-      const [type, data] = action.payload;
-      const newItem = updateStatus(state.processing, type, data);
+      const queueItem = action.payload;
 
-      switch (type) {
-        case 'done':
-          return {
-            ...state,
-            queue: [...state.queue, newItem],
-            processing: null,
-          };
-        case 'error':
-          return {
-            ...state,
-            errors: [...state.errors, newItem],
-            processing: null,
-          };
-        default:
-          return {
-            ...state,
-            processing: newItem,
-          };
-      }
+      return {
+        ...state,
+        queue: state.queue.map(item => (item.id === queueItem.id ? queueItem : item)),
+      };
     }
 
     default:

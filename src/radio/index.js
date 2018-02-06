@@ -57,6 +57,7 @@ export type QueueItem = {
   song?: SongInfoExtended,
   id: string,
   status: $Values<typeof QueueItemStatus>,
+  error?: Error,
 };
 
 /*
@@ -156,6 +157,7 @@ class Radio extends EventEmitter {
 
   addSong(link: string, user: Discord.User) {
     const emitter = new EventEmitter();
+
     const queueItem: QueueItem = {id: uuid(), status: QueueItemStatus.UNKNOWN};
     const uid = user.id;
 
@@ -164,25 +166,38 @@ class Radio extends EventEmitter {
     q.push(queueItem);
     this.emit('queue', user, q);
 
+    const emitUpdate = (nextTick: boolean = false) => {
+      if (nextTick) {
+        process.nextTick(() => {
+          this.emit('queue', user, q);
+          emitter.emit('update', queueItem);
+        });
+      } else {
+        this.emit('queue', user, q);
+        emitter.emit('update', queueItem);
+      }
+    };
+
     const handler = handlers(link, this.app.config);
     if (!handler) {
       queueItem.status = QueueItemStatus.INVALID;
-      this.emit('queue', user, q);
-      return null;
+      queueItem.error = new Error('Invalid URL');
+      emitUpdate(true);
+      return emitter;
     }
 
     handler.getMeta((err, song: SongInfoExtended) => {
       if (err) {
         queueItem.status = QueueItemStatus.INVALID;
-        this.emit('queue', user, q);
-        return emitter.emit('error', err);
+        queueItem.error = err;
+        return emitUpdate();
       }
 
       // reject if too long
       if (song.duration > 2 * 60 * 60) {
         queueItem.status = QueueItemStatus.INVALID;
-        this.emit('queue', user, q);
-        return emitter.emit('error', new Error('Track is too long'));
+        queueItem.error = new Error('Track is too long');
+        return emitUpdate();
       }
 
       const service = handler.constructor.name.toLowerCase();
@@ -194,8 +209,7 @@ class Radio extends EventEmitter {
       queueItem.status = QueueItemStatus.WAITING;
       queueItem.song = song;
       queueItem.fp = fp;
-      this.emit('queue', user, q);
-      emitter.emit('meta', song);
+      emitUpdate();
 
       const getFile = (fp: string, cb: (error: ?Error, success?: boolean) => void) => {
         const download = () => {
@@ -214,8 +228,7 @@ class Radio extends EventEmitter {
                 cb(null, true);
               });
             queueItem.status = QueueItemStatus.DOWNLOADING;
-            this.emit('queue', user, q);
-            emitter.emit('downloading');
+            emitUpdate();
           });
         };
 
@@ -253,8 +266,7 @@ class Radio extends EventEmitter {
           const self = this;
           function finish(song: SongInfoExtended) {
             queueItem.status = QueueItemStatus.DONE;
-            emitter.emit('done', song);
-            self.emit('queue', user, q);
+            emitUpdate();
 
             self.app.db
               .multi()
@@ -270,8 +282,7 @@ class Radio extends EventEmitter {
 
           if (!data) {
             queueItem.status = QueueItemStatus.PROCESSING;
-            self.emit('queue', user, q);
-            emitter.emit('processing');
+            emitUpdate();
 
             replaygain(fp)
               .then(gain => {
