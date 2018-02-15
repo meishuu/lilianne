@@ -13,6 +13,7 @@ import Application from '..';
 import handlers from './handlers';
 import type {SongInfo} from './handlers';
 import replaygain from './replaygain';
+import TaskRunner from './utils/TaskRunner';
 
 const {EventEmitter} = events;
 
@@ -77,6 +78,7 @@ class Radio extends EventEmitter {
   history: SongInfoExtended[];
   skips: Set<string>;
   app: Application;
+  TaskRunner: TaskRunner;
 
   constructor(app: Application) {
     super();
@@ -87,6 +89,7 @@ class Radio extends EventEmitter {
     this.current = null;
     this.history = [];
     this.skips = new Set();
+    this.TaskRunner = new TaskRunner();
 
     // eslint-disable-next-line handle-callback-err
     app.db.lrange('radio:history', 0, 19, (err: Error, res?: string[]) => {
@@ -177,7 +180,6 @@ class Radio extends EventEmitter {
         emitter.emit('update', queueItem);
       }
     };
-
     const handler = handlers(link, this.app.config);
     if (!handler) {
       queueItem.status = QueueItemStatus.INVALID;
@@ -185,14 +187,12 @@ class Radio extends EventEmitter {
       emitUpdate(true);
       return emitter;
     }
-
     handler.getMeta((err, song: SongInfoExtended) => {
       if (err) {
         queueItem.status = QueueItemStatus.INVALID;
         queueItem.error = err;
         return emitUpdate();
       }
-
       // reject if too long
       if (song.duration > 2 * 60 * 60) {
         queueItem.status = QueueItemStatus.INVALID;
@@ -210,7 +210,6 @@ class Radio extends EventEmitter {
       queueItem.song = song;
       queueItem.fp = fp;
       emitUpdate();
-
       const getFile = (fp: string, cb: (error: ?Error, success?: boolean) => void) => {
         const download = () => {
           mkdirp(cache, err2 => {
@@ -236,13 +235,13 @@ class Radio extends EventEmitter {
           // not cached
           if (err) {
             if (err.code === 'ENOENT') {
-              download();
+              this.TaskRunner.queueTask(download);
             } else {
               cb(err);
             }
             // cached
           } else if (stats.size === 0) {
-            download();
+            this.TaskRunner.queueTask(download);
           } else {
             cb(null, true);
           }
