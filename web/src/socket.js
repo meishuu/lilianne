@@ -24,11 +24,11 @@ export const socketMiddleware = store => next => action => {
 export default store => {
   socket = io();
 
-  socket.on('app error', (err) => {
+  socket.on('app error', err => {
     store.dispatch(actions.appError(err));
   });
 
-  socket.on('error', (err) => {
+  socket.on('error', err => {
     // TODO
     console.warn('socket.io error');
     console.warn(err);
@@ -38,24 +38,24 @@ export default store => {
     store.dispatch(actions.showDisconnect());
   });
 
-  socket.on('load', (data) => {
+  socket.on('load', data => {
     store.dispatch(actions.initialize(data));
     //$('.front').fadeOut();
   });
 
-  socket.on('song', (song) => {
+  socket.on('song', song => {
     store.dispatch(actions.setCurrentSong(song));
   });
 
-  socket.on('order', (order) => {
+  socket.on('order', order => {
     store.dispatch(actions.setDjOrder(order));
   });
 
-  socket.on('queue', (queue) => {
+  socket.on('queue', queue => {
     store.dispatch(actions.setLocalQueue(queue));
   });
 
-  socket.on('add status', (type, data) => {
-    store.dispatch(actions.setSongStatus([type, data]));
+  socket.on('add status', queueItem => {
+    store.dispatch(actions.setSongStatus(queueItem));
   });
 };

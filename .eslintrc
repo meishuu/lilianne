@@ -1,0 +1,24 @@
+{
+  "root": true,
+  "parser": "babel-eslint",
+  "plugins": ["babel", "flowtype", "import", "promise", "standard"],
+  "extends": ["standard", "prettier", "prettier/flowtype", "prettier/standard"],
+  "rules": {
+    "camelcase": ["error", {"properties": "always"}],
+    "no-unused-vars": ["error", {"argsIgnorePattern": "^_"}],
+    "one-var": ["error", "never"],
+    "prefer-arrow-callback": "error",
+    "prefer-const": ["error", {"destructuring": "all"}],
+    "prefer-spread": "error",
+    "quotes": ["error", "single", {"avoidEscape": false, "allowTemplateLiterals": true}],
+
+    "import/extensions": ["error", {"js": "never", "json": "always", "png": "always"}],
+    "import/no-unresolved": ["error", {"commonjs": true, "ignore": ["\\.png$"]}],
+
+    "flowtype/define-flow-type": "error",
+    "flowtype/use-flow-type": "error",
+    "flowtype/valid-syntax": "error",
+
+    "no-use-before-define": "off"
+  }
+}

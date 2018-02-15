@@ -1,25 +1,32 @@
-import { URL, parse as parseUrl } from 'url';
-import * as qs from 'querystring';
-const fetch = require('node-fetch'); // FIXME needs babel for es6 module support
+/* @flow */
+/* eslint-disable camelcase */
 
-import { Writable } from 'stream';
-import { HandlerImpl, SongInfo } from '../handlers';
-import { ConfigOptions } from '../..';
+import {URL, parse as parseUrl} from 'url';
+import qs from 'querystring';
+import fetch from 'node-fetch';
 
-export default class SoundCloud implements HandlerImpl {
+import {Writable} from 'stream';
+import {Handler, SongInfo} from '../handlers';
+import type {ConfigOptions} from '../..';
+
+export default class SoundCloud implements Handler {
   static match(link: string) {
     const parse = parseUrl(link);
-    return (parse.hostname === 'snd.sc' || /(www\.)?soundcloud\.com/.test(parse.hostname));
+    return parse.hostname === 'snd.sc' || /(www\.)?soundcloud\.com/.test(String(parse.hostname));
   }
 
   stream_url: string;
   key: string;
+  link: string;
 
-  constructor(public link: string, config: ConfigOptions['services']) {
-    this.key = (config && config.soundcloud && config.soundcloud.client_id) || '';
+  constructor(link: string, config: $PropertyType<ConfigOptions, 'services'>) {
+    this.link = link;
+    if (config && config.soundcloud && config.soundcloud.client_id) {
+      this.key = config.soundcloud.client_id;
+    }
   }
 
-  getMeta(cb: (error: Error, song?: SongInfo) => void) {
+  getMeta(cb: (error: ?Error, song?: SongInfo) => void) {
     if (!this.key) {
       process.nextTick(cb, new Error('no SoundCloud API key provided'));
       return;
@@ -31,7 +38,7 @@ export default class SoundCloud implements HandlerImpl {
       client_id: this.key,
     });
 
-    fetch(url.href, { redirect: 'follow' })
+    fetch(url.href, {redirect: 'follow'})
       .then((res: any) =>
         res.json().then((data: any) => {
           // check api error
@@ -70,8 +77,8 @@ export default class SoundCloud implements HandlerImpl {
 
   download(stream: Writable) {
     const url = new URL(this.stream_url);
-    url.search = qs.stringify({ client_id: this.key });
+    url.search = qs.stringify({client_id: this.key});
     fetch(url.href).then((res: any) => res.body.pipe(stream));
     return stream;
   }
-};
+}

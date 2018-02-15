@@ -9,7 +9,7 @@ export const SET_SONG_STATUS = 'SET_SONG_STATUS';
 export const ADD_SONG = 'ADD_SONG';
 export const REMOVE_SONG = 'REMOVE_SONG';
 
-const createAction = type => payload => ({ type, payload });
+const createAction = type => payload => ({type, payload});
 
 export const appError = createAction(APP_ERROR);
 export const showDisconnect = createAction(SHOW_DISCONNECT);

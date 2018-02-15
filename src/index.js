@@ -1,13 +1,16 @@
+/* @flow */
+/* eslint-disable import/first */
+
 if (process.env.NODE_ENV !== 'production') process.env.NODE_ENV = 'development';
 
-import * as path from 'path';
-import * as redis from 'redis';
+import path from 'path';
+import redis from 'redis';
 
-import Radio from './radio';
-import Web from './web';
-import Bot from './discord';
+import Radio from './radio/index';
+import Web from './web/index';
+import Bot from './discord/index';
 
-export interface ConfigOptions {
+export type ConfigOptions = {
   discord: {
     oauth2: {
       client_id: string,
@@ -35,15 +38,17 @@ export interface ConfigOptions {
     tls?: {
       key: string,
       cert: string,
-      hsts?: boolean | {
-        force?: boolean,
-        maxAge?: number,
-        includeSubDomains?: boolean,
-        preload?: boolean,
-      },
+      hsts?:
+        | boolean
+        | {
+            force?: boolean,
+            maxAge: number,
+            includeSubDomains?: boolean,
+            preload?: boolean,
+          },
     },
   },
-}
+};
 
 export default class Application {
   config: ConfigOptions;
@@ -72,4 +77,5 @@ export default class Application {
   }
 }
 
+// eslint-disable-next-line no-new
 if (require.main === module) new Application();

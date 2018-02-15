@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { GuildIcon } from './DiscordIcon';
+import {GuildIcon} from './DiscordIcon';
 
 export default function Guild(props) {
   return (

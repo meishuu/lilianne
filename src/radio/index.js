@@ -1,58 +1,67 @@
+/* @flow */
 /* eslint-disable no-param-reassign, no-shadow */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { EventEmitter } from 'events';
+import fs from 'fs';
+import path from 'path';
+import events from 'events';
 
-import * as uuid from 'uuid';
-import * as mkdirp from 'mkdirp';
-import * as Discord from 'discord.js';
+import uuid from 'uuid/v4';
+import mkdirp from 'mkdirp';
+import Discord from 'discord.js';
 
 import Application from '..';
-import handlers, { SongInfo } from './handlers';
+import handlers from './handlers';
+import type {SongInfo} from './handlers';
 import replaygain from './replaygain';
+import TaskRunner from './utils/TaskRunner';
+
+const {EventEmitter} = events;
 
 export interface SongInfoExtended extends SongInfo {
-  service: string,
-  gain: number,
+  service: string;
+  gain: number;
   player: {
     dj: UserInfo,
     startTime: number, // in ms
     currentTime?: number, // in ms
-  },
+  };
 }
 
 export interface UserInfo {
-  name: Discord.GuildMember['nickname'] | Discord.User['username'];
-  username: Discord.User['username'];
-  discriminator: Discord.User['discriminator'];
-  id: Discord.User['id'];
-  avatar: Discord.User['avatar'];
+  name: string;
+  username: string;
+  discriminator: string;
+  id: string;
+  avatar: string;
 }
-
-const getUid = (() => {
-  let uid = 0;
-  return () => uid++;
-})();
 
 function skipRatio(length: number) {
   const minutes = length / 60;
   return 0.6 - 0.3 / (1 + Math.exp(3 - minutes / 3)); // eslint-disable-line no-mixed-operators
 }
 
-export function trimUser(user: Discord.User) {
-  const { username, discriminator, id, avatar } = user;
+export function trimUser(user: Discord.User): UserInfo {
+  const {username, discriminator, id, avatar} = user;
   const name = username; // TODO
-  return <UserInfo>{ name, username, discriminator, id, avatar };
+  return {name, username, discriminator, id, avatar};
 }
+export const QueueItemStatus = {
+  INVALID: 0,
+  UNKNOWN: 1,
+  WAITING: 2,
+  DOWNLOADING: 3,
+  PROCESSING: 4,
+  DONE: 5,
+};
+export type QueueItem = {
+  fp?: string,
+  song?: SongInfoExtended,
+  id: string,
+  status: $Values<typeof QueueItemStatus>,
+  error?: Error,
+};
 
-//type QueueItem = [string, SongInfoExtended, number];
-export interface QueueItem {
-  fp: string;
-  song: SongInfoExtended;
-  id: string;
-}
-
+/*
 interface AddSongEmitter extends EventEmitter {
   on(event: 'error', listener: (err: Error) => void): this;
   on(event: 'meta', listener: (song: SongInfoExtended) => void): this;
@@ -60,24 +69,30 @@ interface AddSongEmitter extends EventEmitter {
   on(event: 'processing', listener: () => void): this;
   on(event: 'done', listener: (song: SongInfoExtended) => void): this;
 }
+*/
 
 class Radio extends EventEmitter {
   queues: Map<string, QueueItem[]>;
   order: Discord.User[];
-  current: SongInfoExtended;
+  current: ?SongInfoExtended;
   history: SongInfoExtended[];
   skips: Set<string>;
+  app: Application;
+  TaskRunner: TaskRunner;
 
-  constructor(public app: Application) {
+  constructor(app: Application) {
     super();
 
+    this.app = app;
     this.queues = new Map();
     this.order = [];
     this.current = null;
     this.history = [];
     this.skips = new Set();
+    this.TaskRunner = new TaskRunner();
 
-    app.db.lrange('radio:history', 0, 19, (err: Error, res?: any[]) => {
+    // eslint-disable-next-line handle-callback-err
+    app.db.lrange('radio:history', 0, 19, (err: Error, res?: string[]) => {
       if (res) {
         this.history = res.map(s => JSON.parse(s));
         this.emit('history', this.history);
@@ -91,8 +106,9 @@ class Radio extends EventEmitter {
     if (!this.current) {
       this.order.push(user);
     } else {
+      const currentId = this.current.player.dj.id;
       let last = this.order.pop();
-      if (last && last.id !== this.current.player.dj.id) {
+      if (last && last.id !== currentId) {
         this.order.push(last);
         last = null;
       }
@@ -135,70 +151,106 @@ class Radio extends EventEmitter {
     if (!this.current) return false;
 
     const ratio = skipRatio(this.current.duration);
-    const skipped = this.skips.size;
     const total = this.order.length;
     const needed = Math.ceil(ratio * total);
     this.emit('skips', this.skips, needed);
   }
 
+  linkChecker(link: string, user: Discord.User) {}
+
   addSong(link: string, user: Discord.User) {
+    const emitter = new EventEmitter();
+
+    const queueItem: QueueItem = {id: uuid(), status: QueueItemStatus.UNKNOWN};
+    const uid = user.id;
+
+    if (!this.queues.has(uid)) this.queues.set(uid, []);
+    const q = this.queues.get(uid) || [];
+    q.push(queueItem);
+    this.emit('queue', user, q);
+
+    const emitUpdate = (nextTick: boolean = false) => {
+      if (nextTick) {
+        process.nextTick(() => {
+          this.emit('queue', user, q);
+          emitter.emit('update', queueItem);
+        });
+      } else {
+        this.emit('queue', user, q);
+        emitter.emit('update', queueItem);
+      }
+    };
     const handler = handlers(link, this.app.config);
-    if (!handler) return null;
-
-    const emitter: AddSongEmitter = new EventEmitter();
-
+    if (!handler) {
+      queueItem.status = QueueItemStatus.INVALID;
+      queueItem.error = new Error('Invalid URL');
+      emitUpdate(true);
+      return emitter;
+    }
     handler.getMeta((err, song: SongInfoExtended) => {
-      if (err) return emitter.emit('error', err);
-
+      if (err) {
+        queueItem.status = QueueItemStatus.INVALID;
+        queueItem.error = err;
+        return emitUpdate();
+      }
       // reject if too long
       if (song.duration > 2 * 60 * 60) {
-        return emitter.emit('error', new Error('Track is too long'));
+        queueItem.status = QueueItemStatus.INVALID;
+        queueItem.error = new Error('Track is too long');
+        return emitUpdate();
       }
 
       const service = handler.constructor.name.toLowerCase();
-      song.service = service;
-      emitter.emit('meta', song);
-
       const cache = path.join(this.app.config.radio.cache, service);
       const fp = path.join(cache, song.id.toString());
       const key = ['radio', service, song.id].join(':');
 
-      function getFile(fp: string, cb: (error: Error, success?: boolean) => void) {
-        function download() {
-          mkdirp(cache, (err2) => {
-            if (err) {
+      song.service = service;
+      queueItem.status = QueueItemStatus.WAITING;
+      queueItem.song = song;
+      queueItem.fp = fp;
+      emitUpdate();
+      const getFile = (fp: string, cb: (error: ?Error, success?: boolean) => void) => {
+        const download = () => {
+          mkdirp(cache, err2 => {
+            if (err2) {
               cb(err2);
               return;
             }
 
-            handler.download(fs.createWriteStream(fp))
-              .on('error', (err3) => { cb(err3); })
-              .on('finish', () => { cb(null, true); });
-
-            emitter.emit('downloading');
+            handler
+              .download(fs.createWriteStream(fp))
+              .on('error', err3 => {
+                cb(err3);
+              })
+              .on('finish', () => {
+                cb(null, true);
+              });
+            queueItem.status = QueueItemStatus.DOWNLOADING;
+            emitUpdate();
           });
-        }
+        };
 
         fs.stat(fp, (err, stats) => {
           // not cached
           if (err) {
             if (err.code === 'ENOENT') {
-              download();
+              this.TaskRunner.queueTask(download);
             } else {
               cb(err);
             }
-          // cached
+            // cached
           } else if (stats.size === 0) {
-            download();
+            this.TaskRunner.queueTask(download);
           } else {
             cb(null, true);
           }
         });
-      }
+      };
 
-      function promisify(func: (cb: (err: Error, res?: any) => void) => any) {
+      function promisify(func: (cb: (err: ?Error, res?: any) => void) => any) {
         return new Promise((resolve, reject) => {
-          func((err: Error, res?: any) => {
+          func((err: ?Error, res?: any) => {
             if (err) {
               reject(err);
             } else {
@@ -208,56 +260,51 @@ class Radio extends EventEmitter {
         });
       }
 
-      Promise.all([
-        promisify(cb => getFile(fp, cb)),
-        promisify(cb => this.app.db.get(key, cb)),
-      ])
-      .catch((err) => {
-        emitter.emit(err);
-      })
-      .then((res: any[]) => {
-        const self = this;
-        function finish(song: SongInfoExtended) {
-          const uid = user.id;
-          if (!self.queues.has(uid)) self.queues.set(uid, []);
-          const q = self.queues.get(uid);
-          q.push({ fp, song, id: uuid() });
+      Promise.all([promisify(cb => getFile(fp, cb)), promisify(cb => this.app.db.get(key, cb))])
+        .then((res: any[]) => {
+          const self = this;
+          function finish(song: SongInfoExtended) {
+            queueItem.status = QueueItemStatus.DONE;
+            emitUpdate();
 
-          emitter.emit('done', song);
-          self.emit('queue', user, q);
+            self.app.db
+              .multi()
+              .set(key, JSON.stringify(song))
+              .sadd(['radio', service].join(':'), song.id)
+              .exec();
+          }
 
-          self.app.db.multi()
-            .set(key, JSON.stringify(song))
-            .sadd(['radio', service].join(':'), song.id)
-            .exec();
-        }
+          let data;
+          try {
+            data = JSON.parse(res[1]);
+          } catch (e) {}
 
-        let data;
-        try {
-          data = JSON.parse(res[1]);
-        } catch (e) {
-        }
+          if (!data) {
+            queueItem.status = QueueItemStatus.PROCESSING;
+            emitUpdate();
 
-        if (!data) {
-          emitter.emit('processing');
-
-          replaygain(fp, (err, gain) => {
-            if (err) return emitter.emit('error', err);
-
-            song.gain = gain;
+            replaygain(fp)
+              .then(gain => {
+                song.gain = gain;
+                finish(song);
+              })
+              .catch(err => {
+                emitter.emit('error', err);
+              });
+          } else {
+            song.gain = data.gain;
             finish(song);
-          });
-        } else {
-          song.gain = data.gain;
-          finish(song);
-        }
-      });
+          }
+        })
+        .catch(err => {
+          emitter.emit(err);
+        });
     });
 
     return emitter;
   }
 
-  removeSong(user: Discord.User, qid: QueueItem['id']) {
+  removeSong(user: Discord.User, qid: $PropertyType<QueueItem, 'id'>) {
     const queue = this.queues.get(user.id);
     if (!queue) return;
 
@@ -282,16 +329,18 @@ class Radio extends EventEmitter {
     }
 
     if (this.order.length > 0) {
+      // $FlowFixMe
       const index = this.order.findIndex(u => this.queues.has(u.id) && this.queues.get(u.id).length > 0);
       if (index !== -1) {
         const user = this.order[index];
-        const queue = this.queues.get(user.id);
+        const queue = this.queues.get(user.id) || [];
         const data = queue.shift();
 
         this.order.push(...this.order.splice(0, index + 1));
 
-        const { fp } = data;
+        const {fp} = data;
         this.current = data.song;
+        // $FlowFixMe
         this.current.player = {
           dj: trimUser(user),
           startTime: Date.now(),
@@ -311,12 +360,14 @@ class Radio extends EventEmitter {
   }
 }
 
+/*
 interface Radio {
-  on(event: 'history', listener: (history: Radio['history']) => void): this;
-  on(event: 'order', listener: (order: Radio['order']) => void): this;
-  on(event: 'skips', listener: (skips: Radio['skips'], needed: number) => void): this;
+  on(event: 'history', listener: (history: Radio.history) => void): this;
+  on(event: 'order', listener: (order: Radio.order) => void): this;
+  on(event: 'skips', listener: (skips: Radio.skips, needed: number) => void): this;
   on(event: 'queue', listener: (user: Discord.User, queue: QueueItem[]) => void): this;
   on(event: 'song', listener: (fp?: string, song?: SongInfoExtended) => void): this;
 }
+*/
 
 export default Radio;
