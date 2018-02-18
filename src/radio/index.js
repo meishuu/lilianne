@@ -13,6 +13,7 @@ import Application from '..';
 import handlers from './handlers';
 import type {SongInfo} from './handlers';
 import replaygain from './replaygain';
+import TaskRunner from './utils/TaskRunner';
 
 const {EventEmitter} = events;
 
@@ -69,6 +70,7 @@ class Radio extends EventEmitter {
   history: SongInfoExtended[];
   skips: Set<string>;
   app: Application;
+  taskRunner: TaskRunner;
 
   constructor(app: Application) {
     super();
@@ -79,6 +81,7 @@ class Radio extends EventEmitter {
     this.current = null;
     this.history = [];
     this.skips = new Set();
+    this.taskRunner = new TaskRunner();
 
     // eslint-disable-next-line handle-callback-err
     app.db.lrange('radio:history', 0, 19, (err: Error, res?: string[]) => {
@@ -232,13 +235,13 @@ class Radio extends EventEmitter {
           // not cached
           if (err) {
             if (err.code === 'ENOENT') {
-              download();
+              this.taskRunner.queueTask(download);
             } else {
               cb(err);
             }
             // cached
           } else if (stats.size === 0) {
-            download();
+            this.taskRunner.queueTask(download);
           } else {
             cb(null, true);
           }
