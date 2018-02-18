@@ -2,6 +2,33 @@ import React from 'react';
 import classNames from 'classnames';
 import {timeStr} from '../util/song';
 
+const QueueItemStatus = {
+  INVALID: 0,
+  UNKNOWN: 1,
+  WAITING: 2,
+  DOWNLOADING: 3,
+  PROCESSING: 4,
+  DONE: 5,
+};
+
+function getStatusText(status) {
+  switch (status) {
+    case QueueItemStatus.INVALID:
+      return 'Error';
+    case QueueItemStatus.UNKNOWN:
+      return 'adding...';
+    case QueueItemStatus.WAITING:
+      return 'waiting...';
+    case QueueItemStatus.DOWNLOADING:
+      return 'downloading...';
+    case QueueItemStatus.PROCESSING:
+      return 'processing...';
+    case QueueItemStatus.DONE:
+    default:
+      return 'ready';
+  }
+}
+
 function ItemWaiting({index, data, onDelete}) {
   const songClass = classNames({
     song: true,
@@ -15,7 +42,7 @@ function ItemWaiting({index, data, onDelete}) {
       <div className="info">
         <a href={data.url}>{data.url}</a>
       </div>
-      <div className="status">{data.status}</div>
+      <div className="status">{getStatusText(data.status)}</div>
       <div className="actions">
         <button className="btn-delete" type="button" onClick={onDelete}>
           &times;
@@ -41,7 +68,7 @@ function ItemResolved({index, data, onDelete}) {
         </div>
         <div className={classNames('uploader', song.service)}>{song.uploader.name}</div>
       </div>
-      <div className="status">{data.status}</div>
+      <div className="status">{getStatusText(data.status)}</div>
       <div className="time">{timeStr(song.duration)}</div>
       <div className="actions">
         <button className="btn-delete" type="button" onClick={onDelete}>
