@@ -14,6 +14,9 @@ import handlers from './handlers';
 import type {SongInfo} from './handlers';
 import replaygain from './replaygain';
 import TaskRunner from './utils/TaskRunner';
+import playlistParser from './utils/PlaylistParser';
+
+const url = require('url').URL;
 
 const {EventEmitter} = events;
 
@@ -148,6 +151,16 @@ class Radio extends EventEmitter {
     this.emit('skips', this.skips, needed);
   }
 
+  async addSongWrapper(link: string, user: Discord.User) {
+    const passedUrl = new URL(link);
+    if (passedUrl.pathname === '/playlist') {
+      return playlistParser(passedUrl.searchParams.get('list')).then(items =>
+        items.map(item => this.addSong(item, user))
+      );
+    } else {
+      return [this.addSong(link, user)];
+    }
+  }
   addSong(link: string, user: Discord.User) {
     const emitter = new EventEmitter();
 
