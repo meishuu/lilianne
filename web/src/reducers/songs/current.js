@@ -1,7 +1,7 @@
-import { INITIALIZE, SET_CURRENT_SONG } from '../../actions';
-import { getUid } from './items';
-import { getSong } from '../songs';
-import { getUser } from '../users';
+import {INITIALIZE, SET_CURRENT_SONG} from '../../actions';
+import {getUid} from './items';
+import {getSong} from '../songs';
+import {getUser} from '../users';
 
 function reduceSong(song) {
   if (!song) return null;
@@ -27,8 +27,8 @@ export default function reduceCurrent(state = null, action, songs) {
 }
 
 export function getCurrentSong(state) {
-  const { current } = state.songs;
-  if (!current) return { song: null }; // TODO
+  const {current} = state.songs;
+  if (!current) return {song: null}; // TODO
 
   return {
     ...current,

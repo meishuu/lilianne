@@ -1,4 +1,4 @@
-import { INITIALIZE, SET_DJ_ORDER } from '../actions';
+import {INITIALIZE, SET_DJ_ORDER} from '../actions';
 
 export default function members(state = [], action) {
   switch (action.type) {

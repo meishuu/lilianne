@@ -1,7 +1,7 @@
 import React from 'react';
 
 export default function DiscordIcon(props) {
-  const { type, id, icon } = props;
+  const {type, id, icon} = props;
   if (!id || !icon) {
     return (
       <div className={`${props.type}-wrap`}>

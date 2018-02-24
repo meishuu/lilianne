@@ -1,6 +1,6 @@
-import { INITIALIZE, SET_CURRENT_SONG } from '../../actions';
-import { getSong } from '../songs';
-import { getUser } from '../users';
+import {INITIALIZE, SET_CURRENT_SONG} from '../../actions';
+import {getSong} from '../songs';
+import {getUser} from '../users';
 
 export default function reduceHistory(state = [], action, songs) {
   switch (action.type) {
@@ -14,7 +14,7 @@ export default function reduceHistory(state = [], action, songs) {
 
     case SET_CURRENT_SONG: {
       if (!songs.current) return state;
-      const { offset, ...current } = songs.current;
+      const {offset, ...current} = songs.current;
       return [current, ...state];
     }
 

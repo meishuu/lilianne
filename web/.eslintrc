@@ -1,3 +1,10 @@
 {
-  "extends": ["react-app"]
+  "env": {
+    "browser": true,
+    "node": false
+  },
+  "extends": ["react-app", "standard-jsx"],
+  "rules": {
+    "jsx-quotes": ["error", "prefer-double"]
+  }
 }

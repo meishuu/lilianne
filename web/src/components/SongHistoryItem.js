@@ -1,9 +1,9 @@
 import React from 'react';
 import TimeAgo from 'react-timeago';
 
-import { UserAvatar } from './DiscordIcon';
+import {UserAvatar} from './DiscordIcon';
 
-export default function SongHistoryItem({ song, dj, startTime }) {
+export default function SongHistoryItem({song, dj, startTime}) {
   return (
     <div className="item">
       <div className="song">
